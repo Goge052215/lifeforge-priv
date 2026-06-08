@@ -1,16 +1,18 @@
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
-import { defineConfig } from 'vite'
+import { defineConfig, type PluginOption } from 'vite'
 import dts from 'vite-plugin-dts'
 
 export default defineConfig({
   plugins: [
-    react(),
-    vanillaExtractPlugin(),
+    react() as unknown as PluginOption,
+    vanillaExtractPlugin() as unknown as PluginOption,
     dts({
-      rollupTypes: true
-    })
+      // Avoid api-extractor's ajv dependency chain, which breaks under
+      // Bun's isolated linker in Cloudflare builds.
+      rollupTypes: false
+    }) as unknown as PluginOption
   ],
   resolve: {
     alias: {
