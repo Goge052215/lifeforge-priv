@@ -1,0 +1,32 @@
+FROM oven/bun:1-alpine AS builder
+
+RUN apk add --no-cache git
+
+WORKDIR /lifeforge
+
+COPY . .
+
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --linker isolated
+
+RUN bun run build-logger
+RUN bun run build-server-utils
+RUN bun run build-shared
+RUN bun --cwd server run build
+
+FROM oven/bun:1-alpine AS runtime
+
+WORKDIR /lifeforge
+
+ENV NODE_ENV=production
+ENV PORT=8080
+
+COPY --from=builder /lifeforge /lifeforge
+
+RUN mkdir -p /lifeforge/apps /lifeforge/server/medium
+
+WORKDIR /lifeforge/server
+
+EXPOSE 8080
+
+CMD ["bun", "run", "start:prod"]
