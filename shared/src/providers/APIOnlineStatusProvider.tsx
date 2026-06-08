@@ -1,0 +1,110 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState
+} from 'react'
+
+import { useAPIEndpoint } from './APIEndpointProvider'
+
+async function checkAPIStatus(
+  apiEndpoint: string
+): Promise<'production' | 'development' | false> {
+  const controller = new AbortController()
+
+  const timeoutId = setTimeout(() => {
+    controller.abort()
+  }, 5000)
+
+  try {
+    const res = await fetch(`${apiEndpoint}/status`, {
+      signal: controller.signal
+    })
+
+    if (res.ok) {
+      const data: any = await res.json()
+
+      return data.data.environment
+    }
+
+    return false
+  } catch (err) {
+    return false
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+interface IAPIOnlineStatus {
+  isOnline: boolean | 'loading'
+  environment: {
+    server: 'production' | 'development' | null
+    client: 'production' | 'development' | null
+  }
+  retry: () => void
+}
+
+const APIOnlineStatusContext = createContext<IAPIOnlineStatus | undefined>(
+  undefined
+)
+
+export default function APIOnlineStatusProvider({
+  clientEnvironment,
+  children
+}: {
+  clientEnvironment: 'production' | 'development' | null
+  children: React.ReactNode
+}) {
+  const apiEndpoint = useAPIEndpoint()
+
+  const [isOnline, setIsOnline] = useState<boolean | 'loading'>('loading')
+
+  const [environment, setEnvironment] = useState<
+    'production' | 'development' | null
+  >(null)
+
+  const handleRetry = useCallback(() => {
+    setIsOnline('loading')
+    checkAPIStatus(apiEndpoint)
+      .then(status => {
+        setEnvironment(status === false ? null : status)
+        setIsOnline(status !== false)
+      })
+      .catch(err => {
+        console.error(err)
+        setIsOnline(false)
+      })
+  }, [apiEndpoint])
+
+  useEffect(() => {
+    handleRetry()
+  }, [])
+
+  return (
+    <APIOnlineStatusContext
+      value={{
+        isOnline,
+        environment: {
+          server: environment,
+          client: clientEnvironment
+        },
+        retry: handleRetry
+      }}
+    >
+      {children}
+    </APIOnlineStatusContext>
+  )
+}
+
+export function useAPIOnlineStatus(): IAPIOnlineStatus {
+  const context = useContext(APIOnlineStatusContext)
+
+  if (context === undefined) {
+    throw new Error(
+      'useAPIOnlineStatus must be used within a APIOnlineStatusProvider'
+    )
+  }
+
+  return context
+}

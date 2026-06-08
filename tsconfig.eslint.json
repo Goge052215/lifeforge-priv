@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "apps/**/*",
+    "packages/*/src",
+    "packages/*/.storybook",
+    "client/src",
+    "server/src",
+    "docs/src",
+    "shared/src",
+    "scripts/*",
+    "tools/src",
+    "tools/scripts"
+  ]
+}

@@ -1,0 +1,48 @@
+import chalk from 'chalk'
+import type { Command } from 'commander'
+
+import logger from '@/utils/logger'
+
+import SERVICES from '../constants/services'
+import {
+  startAllServices,
+  startSingleService
+} from '../functions/startServices'
+
+export function devHandler(
+  this: Command,
+  service: string,
+  extraArgs: string[] = []
+): void {
+  const options = this.parent?.opts()
+
+  const host = options?.host
+
+  const port = options?.port
+
+  if (!service) {
+    logger.info('Starting all services...')
+    startAllServices(host, port)
+
+    return
+  }
+
+  if (!SERVICES.includes(service as (typeof SERVICES)[number])) {
+    logger.error(`Unknown service: ${service}`)
+    process.exit(1)
+  }
+
+  logger.info(`Starting ${chalk.blue(service)} service...`)
+
+  if (extraArgs.length > 0) {
+    logger.debug(`Extra arguments: ${extraArgs.join(' ')}`)
+  }
+
+  try {
+    startSingleService(service, extraArgs, host, port)
+  } catch (error) {
+    logger.error(`Failed to start ${chalk.blue(service)} service`)
+    logger.debug(`Error details: ${error}`)
+    process.exit(1)
+  }
+}
