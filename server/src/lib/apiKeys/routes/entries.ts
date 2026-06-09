@@ -64,15 +64,29 @@ const list = forge
     }
   })
   .callback(async ({ pb, response }) => {
+    // #region debug-point A:api-keys-list-entry
+    fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: process.env.DEBUG_SESSION_ID || 'api-keys-500', runId: 'pre-fix', hypothesisId: 'A', location: 'entries.ts:list:entry', msg: '[DEBUG] api keys list requested', data: { hasMasterKey: Boolean(process.env.MASTER_KEY), pbHost: process.env.PB_HOST ? 'set' : 'missing' }, ts: Date.now() }) }).catch(() => {})
+    // #endregion
     const entries = await pb.getFullList
       .collection('entries')
       .sort(['name'])
       .execute()
 
+    // #region debug-point B:api-keys-list-loaded
+    fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: process.env.DEBUG_SESSION_ID || 'api-keys-500', runId: 'pre-fix', hypothesisId: 'B', location: 'entries.ts:list:loaded', msg: '[DEBUG] api keys list loaded entries', data: { count: entries.length }, ts: Date.now() }) }).catch(() => {})
+    // #endregion
+
     entries.forEach(entry => {
-      entry.key = decrypt2(entry.key, process.env.MASTER_KEY!)
-        .toString()
-        .slice(-4)
+      try {
+        entry.key = decrypt2(entry.key, process.env.MASTER_KEY!)
+          .toString()
+          .slice(-4)
+      } catch (error: any) {
+        // #region debug-point C:api-keys-list-decrypt-failure
+        fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: process.env.DEBUG_SESSION_ID || 'api-keys-500', runId: 'pre-fix', hypothesisId: 'C', location: 'entries.ts:list:decrypt-failure', msg: '[DEBUG] api keys list failed during decrypt', data: { entryId: entry.id, keyId: entry.keyId, hasMasterKey: Boolean(process.env.MASTER_KEY), errorName: error?.name, errorMessage: error?.message }, ts: Date.now() }) }).catch(() => {})
+        // #endregion
+        throw error
+      }
     })
 
     return response.ok(entries)
