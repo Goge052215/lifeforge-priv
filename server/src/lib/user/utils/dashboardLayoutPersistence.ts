@@ -1,5 +1,17 @@
 import type { IDashboardLayout } from '@lifeforge/shared'
 
+interface DashboardLayoutItem {
+  x: number
+  y: number
+  w: number
+  h: number
+  i: string
+  minW: number
+  minH: number
+  maxW?: number
+  maxH?: number
+}
+
 export interface PersistedDashboardLayout {
   version: 1
   updatedAt: number
@@ -10,7 +22,9 @@ function toFiniteNumber(value: unknown, fallback: number) {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }
 
-function sanitizeDashboardLayoutItem(value: unknown) {
+function sanitizeDashboardLayoutItem(
+  value: unknown
+): DashboardLayoutItem | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return null
   }
@@ -21,7 +35,7 @@ function sanitizeDashboardLayoutItem(value: unknown) {
     return null
   }
 
-  const item: Record<string, unknown> = {
+  const item: DashboardLayoutItem = {
     i: candidate.i,
     x: Math.max(0, toFiniteNumber(candidate.x, 0)),
     y: Math.max(0, toFiniteNumber(candidate.y, 0)),
@@ -57,7 +71,7 @@ export function sanitizeDashboardLayout(value: unknown): IDashboardLayout {
 
     sanitized[breakpoint] = items
       .map(item => sanitizeDashboardLayoutItem(item))
-      .filter(item => item !== null) as IDashboardLayout[string]
+      .filter((item): item is DashboardLayoutItem => item !== null)
   }
 
   return sanitized
