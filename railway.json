@@ -1,0 +1,10 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {},
+  "deploy": {
+    "startCommand": "bun run --cwd server start:prod",
+    "variables": {
+      "RAILPACK_INSTALL_CMD": "bun install --frozen-lockfile --ignore-scripts"
+    }
+  }
+}
