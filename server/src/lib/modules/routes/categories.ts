@@ -5,6 +5,7 @@ import forge from '../forge'
 export const list = forge
   .query({
     description: 'Get the category display order',
+    noAuth: true,
     input: {},
     output: {
       OK: z.record(z.string(), z.record(z.string(), z.string()))

@@ -8,6 +8,7 @@ const fontCache = new NodeCache({ stdTTL: 86400, checkperiod: 3600 })
 export const listGoogleFonts = forge
   .query({
     description: 'Retrieve available Google Fonts',
+    noAuth: true,
     input: {},
     output: {
       OK: z.object({
@@ -99,6 +100,7 @@ export const listGoogleFonts = forge
 export const getGoogleFont = forge
   .query({
     description: 'Get details of a specific Google Font',
+    noAuth: true,
     input: {
       query: z.object({
         family: z.string()
@@ -307,10 +309,14 @@ export const updatePersonalization = forge
     },
     output: {
       NO_CONTENT: true,
-      BAD_REQUEST: z.string()
+      BAD_REQUEST: z.string(),
+      UNAUTHORIZED: true
     }
   })
   .callback(async ({ pb, body: { data }, response }) => {
+    // #region debug-point B:update-personalization-entry
+    fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: process.env.DEBUG_SESSION_ID || 'railway-auth-500', runId: 'pre-fix', hypothesisId: 'B', location: 'personalization.ts:updatePersonalization:entry', msg: '[DEBUG] update personalization entry', data: { hasAuthRecord: Boolean(pb.instance.authStore.record?.id), dataKeys: Object.keys(data || {}) }, ts: Date.now() }) }).catch(() => {})
+    // #endregion
     const toBeUpdated: { [key: string]: unknown } = {}
 
     for (const item of [
@@ -331,14 +337,31 @@ export const updatePersonalization = forge
     }
 
     if (!Object.keys(toBeUpdated).length) {
+      // #region debug-point B:update-personalization-no-data
+      fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: process.env.DEBUG_SESSION_ID || 'railway-auth-500', runId: 'pre-fix', hypothesisId: 'B', location: 'personalization.ts:updatePersonalization:no-data', msg: '[DEBUG] update personalization rejected empty update payload', data: { dataKeys: Object.keys(data || {}) }, ts: Date.now() }) }).catch(() => {})
+      // #endregion
       return response.badRequest('No data to update')
     }
 
-    await pb.update
-      .collection('users')
-      .id(pb.instance.authStore.record!.id)
-      .data(toBeUpdated)
-      .execute()
+    if (!pb.instance.authStore.record?.id) {
+      return response.unauthorized()
+    }
+
+    try {
+      await pb.update
+        .collection('users')
+        .id(pb.instance.authStore.record.id)
+        .data(toBeUpdated)
+        .execute()
+      // #region debug-point B:update-personalization-success
+      fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: process.env.DEBUG_SESSION_ID || 'railway-auth-500', runId: 'pre-fix', hypothesisId: 'B', location: 'personalization.ts:updatePersonalization:success', msg: '[DEBUG] update personalization saved successfully', data: { userId: pb.instance.authStore.record?.id, updatedKeys: Object.keys(toBeUpdated) }, ts: Date.now() }) }).catch(() => {})
+      // #endregion
+    } catch (error: any) {
+      // #region debug-point B:update-personalization-failure
+      fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: process.env.DEBUG_SESSION_ID || 'railway-auth-500', runId: 'pre-fix', hypothesisId: 'B', location: 'personalization.ts:updatePersonalization:failure', msg: '[DEBUG] update personalization failed during persistence', data: { userId: pb.instance.authStore.record?.id, updatedKeys: Object.keys(toBeUpdated), errorName: error?.name, errorMessage: error?.message, errorStatus: error?.status, response: error?.response }, ts: Date.now() }) }).catch(() => {})
+      // #endregion
+      throw error
+    }
 
     return response.noContent()
   })

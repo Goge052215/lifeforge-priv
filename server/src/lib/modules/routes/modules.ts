@@ -15,6 +15,7 @@ const APPS_DIR = path.join(ROOT_DIR, 'apps')
 export const manifest = forge
   .query({
     description: 'Get installed modules manifest for runtime loading',
+    noAuth: true,
     input: {},
     output: {
       OK: z.object({
@@ -76,6 +77,7 @@ export interface InstalledModule {
 export const list = forge
   .query({
     description: 'List installed modules with metadata',
+    noAuth: true,
     input: {},
     output: {
       OK: z.array(
