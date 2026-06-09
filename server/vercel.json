@@ -1,0 +1,20 @@
+{
+  "functions": {
+    "api/index.ts": {
+      "runtime": "@vercel/node@5.3.24",
+      "memory": 1024,
+      "maxDuration": 30,
+      "includeFiles": [
+        "../locales/**/*",
+        "src/core/bin/**/*",
+        "src/core/models/**/*"
+      ]
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ]
+}

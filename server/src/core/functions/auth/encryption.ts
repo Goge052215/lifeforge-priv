@@ -11,7 +11,7 @@ import {
 const ALGORITHM = 'aes-256-ctr'
 
 const encrypt: EncryptFunc = (buffer: Buffer, key: string) => {
-  const iv = crypto.randomBytes(16)
+  const iv = Uint8Array.from(crypto.randomBytes(16))
 
   key = crypto
     .createHash('sha256')
@@ -20,25 +20,35 @@ const encrypt: EncryptFunc = (buffer: Buffer, key: string) => {
     .slice(0, 32)
 
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
+  const encryptedChunk = Uint8Array.from(cipher.update(Uint8Array.from(buffer)))
+  const finalChunk = Uint8Array.from(cipher.final())
 
-  const result = Buffer.concat([iv, cipher.update(buffer), cipher.final()])
+  const result = Buffer.from(
+    Uint8Array.from([...iv, ...encryptedChunk, ...finalChunk])
+  )
 
   return result
 }
 
 const decrypt: DecryptFunc = (encrypted: Buffer, key: string) => {
-  const iv = encrypted.slice(0, 16)
+  const iv = Uint8Array.from(encrypted.subarray(0, 16))
 
-  encrypted = encrypted.slice(16)
+  encrypted = encrypted.subarray(16)
   key = crypto
     .createHash('sha256')
     .update(String(key))
     .digest('base64')
-    .substr(0, 32)
+    .slice(0, 32)
 
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
+  const decryptedChunk = Uint8Array.from(
+    decipher.update(Uint8Array.from(encrypted))
+  )
+  const finalChunk = Uint8Array.from(decipher.final())
 
-  const result = Buffer.concat([decipher.update(encrypted), decipher.final()])
+  const result = Buffer.from(
+    Uint8Array.from([...decryptedChunk, ...finalChunk])
+  )
 
   return result
 }

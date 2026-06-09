@@ -1,10 +1,11 @@
+import { MEDIA_DIR } from '@constants'
 import { NextFunction, Request, Response } from 'express'
 import multer from 'multer'
 import { v4 as uuidv4 } from 'uuid'
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'medium/')
+    cb(null, MEDIA_DIR)
   },
   filename: (req, file, cb) => {
     cb(null, `${uuidv4()}.${file.originalname.split('.').pop()}`)

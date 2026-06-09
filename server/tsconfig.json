@@ -23,5 +23,5 @@
       "@lib/*": ["./src/lib/*", "../apps/*"]
     }
   },
-  "include": ["./src/**/*", "../apps/**/server/**/*"]
+  "include": ["./src/**/*", "./api/**/*", "../apps/**/server/**/*"]
 }

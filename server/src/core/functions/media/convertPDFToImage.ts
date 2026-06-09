@@ -1,3 +1,4 @@
+import { MEDIA_DIR } from '@constants'
 import { fromPath } from 'pdf2pic'
 
 import { ConvertPDFToImageFunc } from '@lifeforge/server-utils'
@@ -9,7 +10,7 @@ const convertPDFToImage: ConvertPDFToImageFunc = path => {
         density: 200,
         quality: 100,
         saveFilename: 'receipt',
-        savePath: 'medium',
+        savePath: MEDIA_DIR,
         format: 'png',
         width: 2000,
         preserveAspectRatio: true

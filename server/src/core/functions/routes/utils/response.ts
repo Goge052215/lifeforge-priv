@@ -1,9 +1,26 @@
+import { MEDIA_DIR } from '@constants'
 import chalk from 'chalk'
 import { Response } from 'express'
 import fs from 'fs'
 
 import { createLogger } from '@lifeforge/log'
 import { BaseResponse } from '@lifeforge/server-utils'
+
+function clearMediumDirectory(): void {
+  if (!fs.existsSync(MEDIA_DIR)) {
+    return
+  }
+
+  fs.readdirSync(MEDIA_DIR).forEach(file => {
+    const filePath = `${MEDIA_DIR}/${file}`
+
+    if (fs.statSync(filePath).isFile()) {
+      fs.unlinkSync(filePath)
+    } else {
+      fs.rmSync(filePath, { recursive: true, force: true })
+    }
+  })
+}
 
 export function clientError({
   res,
@@ -18,13 +35,7 @@ export function clientError({
 }) {
   const logger = createLogger({ name: moduleName || 'unknown-module' })
 
-  fs.readdirSync('medium').forEach(file => {
-    if (fs.statSync('medium/' + file).isFile()) {
-      fs.unlinkSync('medium/' + file)
-    } else {
-      fs.rmdirSync('medium/' + file, { recursive: true })
-    }
-  })
+  clearMediumDirectory()
 
   try {
     logger.error(
@@ -43,13 +54,7 @@ export function clientError({
 export function serverError(res: Response, err?: string, moduleName?: string) {
   const logger = createLogger({ name: moduleName || 'unknown-module' })
 
-  fs.readdirSync('medium').forEach(file => {
-    if (fs.statSync('medium/' + file).isFile()) {
-      fs.unlinkSync('medium/' + file)
-    } else {
-      fs.rmdirSync('medium/' + file, { recursive: true })
-    }
-  })
+  clearMediumDirectory()
 
   try {
     logger.error(chalk.red(err))

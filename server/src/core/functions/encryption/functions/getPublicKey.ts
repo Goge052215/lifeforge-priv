@@ -8,6 +8,10 @@ import ensureKeysExist from './ensureKeyExists'
  * This should be exposed to clients for encrypting their AES keys.
  */
 export default function getPublicKey(): string {
+  if (process.env.PUBLIC_KEY_PEM) {
+    return process.env.PUBLIC_KEY_PEM
+  }
+
   if (!fs.existsSync(PUBLIC_KEY_PATH)) {
     ensureKeysExist()
   }

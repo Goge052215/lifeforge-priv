@@ -9,6 +9,10 @@ import ensureKeysExist from './ensureKeyExists'
  * Used internally for decrypting client AES keys.
  */
 function getPrivateKey(): string {
+  if (process.env.PRIVATE_KEY_PEM) {
+    return process.env.PRIVATE_KEY_PEM
+  }
+
   if (!fs.existsSync(PRIVATE_KEY_PATH)) {
     ensureKeysExist()
   }
@@ -25,7 +29,7 @@ function getPrivateKey(): string {
 export default function decryptAESKey(encryptedKey: string): Buffer {
   const privateKey = getPrivateKey()
 
-  const keyBuffer = Buffer.from(encryptedKey, 'base64')
+  const keyBuffer = Uint8Array.from(Buffer.from(encryptedKey, 'base64'))
 
   return crypto.privateDecrypt(
     {

@@ -44,7 +44,10 @@ class TempFileManager implements ITempFileManager {
   }
 
   public write(data: Buffer | string): void {
-    fs.writeFileSync(this.filePath, data)
+    fs.writeFileSync(
+      this.filePath,
+      typeof data === 'string' ? data : Uint8Array.from(data)
+    )
   }
 }
 

@@ -11,9 +11,9 @@ import { EncryptedResponse } from '../types'
  * @returns Encrypted response with iv, data, and tag
  */
 export function encryptAESData(data: string, key: Buffer): EncryptedResponse {
-  const iv = crypto.randomBytes(IV_LENGTH)
-
-  const cipher = crypto.createCipheriv(AES_ALGORITHM, key, iv)
+  const iv = Uint8Array.from(crypto.randomBytes(IV_LENGTH))
+  const binaryKey = Uint8Array.from(key)
+  const cipher = crypto.createCipheriv(AES_ALGORITHM, binaryKey, iv)
 
   let encrypted = cipher.update(data, 'utf8', 'base64')
   encrypted += cipher.final('base64')
@@ -21,7 +21,7 @@ export function encryptAESData(data: string, key: Buffer): EncryptedResponse {
   const authTag = cipher.getAuthTag()
 
   return {
-    iv: iv.toString('base64'),
+    iv: Buffer.from(iv).toString('base64'),
     data: encrypted,
     tag: authTag.toString('base64')
   }

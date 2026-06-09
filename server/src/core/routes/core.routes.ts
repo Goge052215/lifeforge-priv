@@ -1,3 +1,4 @@
+import { ROOT_DIR } from '@constants'
 import { getPublicKey } from '@functions/encryption'
 import corsAnywhere from '@lib/corsAnywhere'
 import dayjs from 'dayjs'
@@ -128,11 +129,11 @@ const coreRoutes = forgeRouter({
 
 writeContractFileToClient(
   coreRoutes,
-  path.resolve(import.meta.dirname, '../../..')
+  ROOT_DIR
 )
 writeContractFileToClient(
   coreRoutes,
-  path.resolve(import.meta.dirname, '../../../../packages/ui/src'),
+  path.resolve(ROOT_DIR, 'packages/ui/src'),
   '.'
 )
 

@@ -1,14 +1,11 @@
 import { PORT } from '@constants'
-import checkDB from '@functions/database/dbUtils'
-import ensureCredentials from '@functions/initialization/ensureCredentials'
-import { LocaleService } from '@functions/initialization/localeService'
+import { initializeServer } from './bootstrap'
 import traceRouteStack from '@functions/initialization/traceRouteStack'
 import { LOG_LEVELS, type LogLevel, coreLogger } from '@functions/logging'
 import createSocketServer from '@functions/socketio/createSocketServer'
 import chalk from 'chalk'
 import { program } from 'commander'
-import fs from 'fs'
-import { createServer } from 'node:http'
+import { createServer } from 'http'
 
 import app from './core/app'
 
@@ -38,12 +35,6 @@ if (opts.logLevel) {
   }
 }
 
-function ensureDirectories(): void {
-  if (!fs.existsSync('./medium')) {
-    fs.mkdirSync('./medium')
-  }
-}
-
 function startServer(server: ReturnType<typeof createServer>): void {
   server.listen(PORT, () => {
     const routes = traceRouteStack(app._router.stack)
@@ -54,10 +45,7 @@ function startServer(server: ReturnType<typeof createServer>): void {
 }
 
 async function main(): Promise<void> {
-  LocaleService.validateAndLoad()
-  ensureDirectories()
-  ensureCredentials()
-  await checkDB()
+  await initializeServer()
 
   const server = createSocketServer(app)
 

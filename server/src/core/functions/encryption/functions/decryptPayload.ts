@@ -39,13 +39,11 @@ function decryptAESData(
   iv: string,
   authTag: string
 ): string {
-  const ivBuffer = Buffer.from(iv, 'base64')
-
-  const dataBuffer = Buffer.from(encryptedData, 'base64')
-
-  const tagBuffer = Buffer.from(authTag, 'base64')
-
-  const decipher = crypto.createDecipheriv(AES_ALGORITHM, key, ivBuffer)
+  const ivBuffer = Uint8Array.from(Buffer.from(iv, 'base64'))
+  const dataBuffer = Uint8Array.from(Buffer.from(encryptedData, 'base64'))
+  const tagBuffer = Uint8Array.from(Buffer.from(authTag, 'base64'))
+  const binaryKey = Uint8Array.from(key)
+  const decipher = crypto.createDecipheriv(AES_ALGORITHM, binaryKey, ivBuffer)
 
   decipher.setAuthTag(tagBuffer)
 

@@ -14,6 +14,10 @@ import {
  * Should be called during server startup.
  */
 export default function ensureKeysExist(): void {
+  if (process.env.PUBLIC_KEY_PEM && process.env.PRIVATE_KEY_PEM) {
+    return
+  }
+
   if (!fs.existsSync(KEYS_DIR)) {
     fs.mkdirSync(KEYS_DIR, { recursive: true })
   }
