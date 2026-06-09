@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react'
 
 import { usePersonalization } from './PersonalizationProvider'
 
+function isThemeMode(value: unknown): value is 'light' | 'dark' | 'system' {
+  return value === 'light' || value === 'dark' || value === 'system'
+}
+
 function SSOAuthProvider({
   forgeAPI,
   children
@@ -34,7 +38,9 @@ function SSOAuthProvider({
       setIsAuthed(true)
 
       setFontFamily(userData.fontFamily || 'Inter')
-      setTheme(userData.theme || 'system')
+      if (isThemeMode(userData.theme)) {
+        setTheme(userData.theme)
+      }
       setRawThemeColor(
         userData.color
           ? userData.color.startsWith('#')

@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import tinycolor from 'tinycolor2'
 
 import type { ProxyTree } from '../../api/typescript/forge_proxy.types'
@@ -18,6 +18,11 @@ import type {
   IDashboardLayout,
   IPersonalizationData
 } from './interfaces/personalization_provider_interfaces'
+import {
+  loadPersistedPersonalization,
+  resolveThemeMode,
+  savePersistedPersonalization
+} from './utils/persistence'
 import { getColorPalette } from './utils/themeColors'
 
 const DEFAULT_VALUE: IPersonalizationData = {
@@ -69,12 +74,21 @@ export default function PersonalizationProvider({
   defaultValueOverride?: Partial<IPersonalizationData>
   children: React.ReactNode
 }) {
+  const persistedValue = useMemo(
+    () =>
+      typeof window !== 'undefined'
+        ? loadPersistedPersonalization(window.localStorage)
+        : {},
+    []
+  )
+
   const defaultValue = useMemo(() => {
     return {
       ...DEFAULT_VALUE,
+      ...persistedValue,
       ...defaultValueOverride
     }
-  }, [defaultValueOverride])
+  }, [defaultValueOverride, persistedValue])
 
   const rootElement = defaultValue.rootElement || document.body
 
@@ -90,6 +104,12 @@ export default function PersonalizationProvider({
 
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(
     defaultValue.theme
+  )
+
+  const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : true
   )
 
   const [rawThemeColor, setRawThemeColor] = useState(defaultValue.rawThemeColor)
@@ -120,14 +140,11 @@ export default function PersonalizationProvider({
   )
 
   const derivedTheme = useMemo(() => {
-    if (theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light'
-    }
-
-    return theme
-  }, [theme])
+    // #region debug-point A:derived-theme
+    fetch((globalThis as typeof globalThis & { DEBUG_SERVER_URL?: string }).DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: (globalThis as typeof globalThis & { DEBUG_SESSION_ID?: string }).DEBUG_SESSION_ID || 'theme-persistence', runId: 'pre-fix', hypothesisId: 'A', location: 'PersonalizationProvider:index.tsx:122', msg: '[DEBUG] computing derived theme', data: { theme, systemPrefersDark: typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)').matches : null }, ts: Date.now() }) }).catch(() => {})
+    // #endregion
+    return resolveThemeMode(theme, systemPrefersDark)
+  }, [theme, systemPrefersDark])
 
   const themeColor = useMemo(
     () =>
@@ -145,7 +162,7 @@ export default function PersonalizationProvider({
     return !bgTemp.startsWith('#')
       ? BG_THEME[bgTemp.replace('bg-', '') as keyof typeof BG_THEME]
       : getColorPalette(bgTemp, 'bg', derivedTheme)
-  }, [bgTemp])
+  }, [bgTemp, derivedTheme])
 
   const getMostReadableColor = useMemo(
     () =>
@@ -170,6 +187,67 @@ export default function PersonalizationProvider({
   useMetaEffect(themeColor)
   useBorderRadiusEffect(borderRadiusMultiplier)
   useBorderedEffect(rootElement, bordered)
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return
+    }
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const applyPreference = (matches: boolean) => {
+      setSystemPrefersDark(matches)
+    }
+
+    applyPreference(mediaQuery.matches)
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      applyPreference(event.matches)
+    }
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleChange)
+
+      return () => {
+        mediaQuery.removeEventListener('change', handleChange)
+      }
+    }
+
+    mediaQuery.addListener(handleChange)
+
+    return () => {
+      mediaQuery.removeListener(handleChange)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    savePersistedPersonalization(window.localStorage, {
+      fontFamily,
+      fontScale,
+      borderRadiusMultiplier,
+      bordered,
+      theme,
+      rawThemeColor,
+      bgTemp,
+      backdropFilters,
+      language,
+      dashboardLayout
+    })
+  }, [
+    fontFamily,
+    fontScale,
+    borderRadiusMultiplier,
+    bordered,
+    theme,
+    rawThemeColor,
+    bgTemp,
+    backdropFilters,
+    language,
+    dashboardLayout
+  ])
 
   const value = useMemo<IPersonalizationData>(
     () => ({
@@ -208,6 +286,7 @@ export default function PersonalizationProvider({
       borderRadiusMultiplier,
       bordered,
       theme,
+      derivedTheme,
       rawThemeColor,
       themeColor,
       getMostReadableColor,

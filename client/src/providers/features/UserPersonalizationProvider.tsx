@@ -14,6 +14,10 @@ function isDashboardLayout(value: unknown): value is IDashboardLayout {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function isThemeMode(value: unknown): value is 'light' | 'dark' | 'system' {
+  return value === 'light' || value === 'dark' || value === 'system'
+}
+
 const UserPersonalizationContext = createContext<{
   changeFontFamily: (font: string) => Promise<void>
   changeFontScale: (scale: number) => Promise<void>
@@ -78,22 +82,27 @@ function UserPersonalizationProvider({
   }
 
   async function changeTheme(theme: 'light' | 'dark' | 'system') {
+    setTheme(theme)
     await syncUserData({ theme }, setUserData)
   }
 
   async function changeThemeColor(color: string) {
+    setRawThemeColor(color)
     await syncUserData({ color: color.replace('theme-', '') }, setUserData)
   }
 
   async function changeBgTemp(color: string) {
+    setBgTemp(color)
     await syncUserData({ bgTemp: color.replace('bg-', '') }, setUserData)
   }
 
   async function changeBackdropFilters(filters: IBackdropFilters) {
+    setBackdropFilters(filters)
     await syncUserData({ backdropFilters: filters }, setUserData)
   }
 
   async function changeLanguage(language: string) {
+    setLanguage(language)
     await syncUserData({ language }, setUserData)
   }
 
@@ -102,17 +111,24 @@ function UserPersonalizationProvider({
   }
 
   async function changeBorderRadiusMultiplier(multiplier: number) {
+    setBorderRadiusMultiplier(multiplier)
     await syncUserData({ borderRadiusMultiplier: multiplier }, setUserData)
   }
 
   async function changeBordered(bordered: boolean) {
+    setBordered(bordered)
     await syncUserData({ bordered }, setUserData)
   }
 
   useEffect(() => {
+    // #region debug-point B:user-data-theme-hydration
+    fetch((globalThis as typeof globalThis & { DEBUG_SERVER_URL?: string }).DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: (globalThis as typeof globalThis & { DEBUG_SESSION_ID?: string }).DEBUG_SESSION_ID || 'theme-persistence', runId: 'pre-fix', hypothesisId: 'B', location: 'UserPersonalizationProvider.tsx:112', msg: '[DEBUG] hydrating personalization from user data', data: { hasUserData: Boolean(userData), theme: userData?.theme, color: userData?.color, bgTemp: userData?.bgTemp }, ts: Date.now() }) }).catch(() => {})
+    // #endregion
     if (!userData) return
 
-    setTheme(userData.theme)
+    if (isThemeMode(userData?.theme)) {
+      setTheme(userData.theme)
+    }
 
     if (isNonEmptyString(userData?.color)) {
       setRawThemeColor(

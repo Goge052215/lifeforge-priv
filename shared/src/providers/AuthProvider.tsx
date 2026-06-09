@@ -253,6 +253,9 @@ export default function AuthProvider({
   )
 
   const logout = useCallback(() => {
+    // #region debug-point C:logout
+    fetch((globalThis as typeof globalThis & { DEBUG_SERVER_URL?: string }).DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: (globalThis as typeof globalThis & { DEBUG_SESSION_ID?: string }).DEBUG_SESSION_ID || 'theme-persistence', runId: 'pre-fix', hypothesisId: 'C', location: 'AuthProvider.tsx:255', msg: '[DEBUG] logout clearing auth state', data: { hadSession: Boolean(localStorage.getItem('session')) }, ts: Date.now() }) }).catch(() => {})
+    // #endregion
     setAuth(false)
     localStorage.removeItem('session')
     setUserData(null)
