@@ -57,6 +57,11 @@ export { default as fetchAPI } from './utils/fetchAPI'
 export { default as getBrowserInfo } from './utils/getBrowserInfo'
 export { default as normalizeSubnamespace } from './utils/normalizeSubnamespace'
 export { default as parseCollectionName } from './utils/parseCollectionName'
+export {
+  deserializeDashboardLayout,
+  sanitizeDashboardLayout,
+  serializeDashboardLayout
+} from './utils/dashboardLayoutPersistence'
 
 export { packageJSONSchema } from './interfaces/module_config.types'
 
@@ -72,6 +77,7 @@ export type {
 // Some shared types
 export type {
   IDashboardLayout,
+  IDashboardLayoutItem,
   IBackdropFilters
 } from './providers/PersonalizationProvider/interfaces/personalization_provider_interfaces'
 export type {

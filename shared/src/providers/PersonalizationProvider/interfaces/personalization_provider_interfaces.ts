@@ -1,15 +1,16 @@
-type IDashboardLayout = Record<
-  string,
-  Array<{
-    x: number
-    y: number
-    w: number
-    h: number
-    i: string
-    minW: number
-    minH: number
-  }>
->
+interface IDashboardLayoutItem {
+  x: number
+  y: number
+  w: number
+  h: number
+  i: string
+  minW: number
+  minH: number
+  maxW?: number
+  maxH?: number
+}
+
+type IDashboardLayout = Record<string, IDashboardLayoutItem[]>
 
 interface IBackdropFilters {
   blur: 'none' | 'sm' | 'base' | 'md' | 'lg' | 'xl' | '2xl' | '3xl'
@@ -50,4 +51,9 @@ interface IPersonalizationData {
   setDashboardLayout: React.Dispatch<React.SetStateAction<IDashboardLayout>>
 }
 
-export type { IPersonalizationData, IBackdropFilters, IDashboardLayout }
+export type {
+  IPersonalizationData,
+  IBackdropFilters,
+  IDashboardLayout,
+  IDashboardLayoutItem
+}

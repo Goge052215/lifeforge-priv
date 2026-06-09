@@ -5,6 +5,10 @@ import z from 'zod'
 import { SchemaWithPB } from '@lifeforge/server-utils'
 
 import schema from '../schema'
+import {
+  deserializeDashboardLayout,
+  serializeDashboardLayout
+} from './dashboardLayoutPersistence'
 
 export function removeSensitiveData(userData: Record<string, any>) {
   const newUserData = _.cloneDeep(userData)
@@ -53,10 +57,21 @@ export async function updateNullData(
     userData.enabledModules = []
   }
 
-  if (!userData.dashboardLayout) {
+  const normalizedDashboardLayout = serializeDashboardLayout(
+    userData.dashboardLayout
+  )
+
+  if (
+    !userData.dashboardLayout ||
+    JSON.stringify(userData.dashboardLayout) !==
+      JSON.stringify(normalizedDashboardLayout)
+  ) {
     await pb.collection('users').update(userData.id, {
-      dashboardLayout: {}
+      dashboardLayout: normalizedDashboardLayout
     })
-    userData.dashboardLayout = {}
   }
+
+  userData.dashboardLayout = deserializeDashboardLayout(
+    normalizedDashboardLayout
+  )
 }

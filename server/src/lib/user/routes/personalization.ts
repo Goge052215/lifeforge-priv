@@ -2,6 +2,7 @@ import NodeCache from 'node-cache'
 import z from 'zod'
 
 import forge from '../forge'
+import { serializeDashboardLayout } from '../utils/dashboardLayoutPersistence'
 
 const fontCache = new NodeCache({ stdTTL: 86400, checkperiod: 3600 })
 
@@ -332,7 +333,10 @@ export const updatePersonalization = forge
       'backdropFilters'
     ]) {
       if (data[item as keyof typeof data] !== undefined) {
-        toBeUpdated[item] = data[item as keyof typeof data]
+        toBeUpdated[item] =
+          item === 'dashboardLayout'
+            ? serializeDashboardLayout(data[item as keyof typeof data])
+            : data[item as keyof typeof data]
       }
     }
 

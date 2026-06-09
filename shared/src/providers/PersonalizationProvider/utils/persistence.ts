@@ -2,6 +2,7 @@ import type {
   IBackdropFilters,
   IDashboardLayout
 } from '../interfaces/personalization_provider_interfaces'
+import { deserializeDashboardLayout } from '../../../utils/dashboardLayoutPersistence'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
@@ -48,10 +49,6 @@ function isBackdropFilters(value: unknown): value is IBackdropFilters {
     'saturation' in value &&
     'overlayOpacity' in value
   )
-}
-
-function isDashboardLayout(value: unknown): value is IDashboardLayout {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 export function sanitizePersistedPersonalization(
@@ -111,8 +108,14 @@ export function sanitizePersistedPersonalization(
     sanitized.language = candidate.language
   }
 
-  if (isDashboardLayout(candidate.dashboardLayout)) {
-    sanitized.dashboardLayout = candidate.dashboardLayout
+  if (
+    typeof candidate.dashboardLayout === 'object' &&
+    candidate.dashboardLayout !== null &&
+    !Array.isArray(candidate.dashboardLayout)
+  ) {
+    sanitized.dashboardLayout = deserializeDashboardLayout(
+      candidate.dashboardLayout
+    )
   }
 
   return sanitized
