@@ -2,10 +2,12 @@ import { ROOT_DIR } from '@constants'
 import { getPublicKey } from '@functions/encryption'
 import corsAnywhere from '@lib/corsAnywhere'
 import dayjs from 'dayjs'
+import type { Response } from 'express'
 import path from 'path'
 import request from 'request'
 import z from 'zod'
 
+// @ts-ignore VS Code fails to pick up local workspace declarations here.
 import { forgeRouter, writeContractFileToClient } from '@lifeforge/server-utils'
 
 import forge from './forge'
@@ -19,7 +21,16 @@ const welcome = forge
       OK: z.literal('Get ready to forge your life!')
     }
   })
-  .callback(async ({ response }) =>
+  .callback(
+    async ({
+      response
+    }: {
+      response: {
+        ok: (
+          payload: 'Get ready to forge your life!'
+        ) => { $status: 200; payload: 'Get ready to forge your life!' }
+      }
+    }) =>
     response.ok('Get ready to forge your life!')
   )
 
@@ -37,7 +48,16 @@ const ping = forge
       OK: z.string()
     }
   })
-  .callback(async ({ body: { timestamp }, response }) =>
+  .callback(
+    async ({
+      body: { timestamp },
+      response
+    }: {
+      body: { timestamp: number }
+      response: {
+        ok: (payload: string) => { $status: 200; payload: string }
+      }
+    }) =>
     response.ok(`Pong at ${dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')}`)
   )
 
@@ -53,7 +73,17 @@ const status = forge
       })
     }
   })
-  .callback(async ({ response }) =>
+  .callback(
+    async ({
+      response
+    }: {
+      response: {
+        ok: (payload: { environment: string }) => {
+          $status: 200
+          payload: { environment: string }
+        }
+      }
+    }) =>
     response.ok({
       environment: process.env.NODE_ENV || 'development'
     })
@@ -80,6 +110,15 @@ const getMedia = forge
     async ({
       query: { collectionId, recordId, fieldId, thumb, token },
       res
+    }: {
+      query: {
+        collectionId: string
+        recordId: string
+        fieldId: string
+        thumb?: string
+        token?: string
+      }
+      res: Response
     }) => {
       const searchParams = new URLSearchParams()
 
@@ -107,7 +146,15 @@ const encryptionPublicKey = forge
       OK: z.string()
     }
   })
-  .callback(async ({ response }) => response.ok(getPublicKey()))
+  .callback(
+    async ({
+      response
+    }: {
+      response: {
+        ok: (payload: string) => { $status: 200; payload: string }
+      }
+    }) => response.ok(getPublicKey())
+  )
 
 const coreRoutes = forgeRouter({
   '': welcome,
