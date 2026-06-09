@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/handler.js": {
+    "api/index.ts": {
       "runtime": "@vercel/node@5.3.24",
       "memory": 1024,
       "maxDuration": 30,
@@ -10,7 +10,7 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/api/handler"
+      "destination": "/api"
     }
   ]
 }
