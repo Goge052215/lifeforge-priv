@@ -1,0 +1,4 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "installCmd": "bun install --frozen-lockfile --ignore-scripts"
+}
