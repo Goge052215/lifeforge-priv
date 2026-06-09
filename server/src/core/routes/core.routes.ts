@@ -127,14 +127,16 @@ const coreRoutes = forgeRouter({
   encryptionPublicKey
 })
 
-writeContractFileToClient(
-  coreRoutes,
-  ROOT_DIR
-)
-writeContractFileToClient(
-  coreRoutes,
-  path.resolve(ROOT_DIR, 'packages/ui/src'),
-  '.'
-)
+if (!process.env.VERCEL) {
+  writeContractFileToClient(
+    coreRoutes,
+    ROOT_DIR
+  )
+  writeContractFileToClient(
+    coreRoutes,
+    path.resolve(ROOT_DIR, 'packages/ui/src'),
+    '.'
+  )
+}
 
 export default coreRoutes

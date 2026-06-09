@@ -148,9 +148,58 @@ export const contract = {
       }
     },
     "auth": {
-      "createFirstUser": {
+      "verifySessionToken": {
         "method": "post",
-        "description": "Create the first user (only works when no users exist)",
+        "description": "Validate user session token",
+        "noAuth": false,
+        "encrypted": false,
+        "isDownloadable": false,
+        "media": null,
+        "input": {},
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "boolean"
+          },
+          "UNAUTHORIZED": true
+        }
+      },
+      "validateOTP": {
+        "method": "post",
+        "description": "Verify one-time password",
+        "noAuth": false,
+        "encrypted": false,
+        "isDownloadable": false,
+        "media": null,
+        "input": {
+          "body": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "otp": {
+                "type": "string"
+              },
+              "otpId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "otp",
+              "otpId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "boolean"
+          }
+        }
+      },
+      "login": {
+        "method": "post",
+        "description": "Authenticate user with credentials",
         "noAuth": true,
         "encrypted": true,
         "isDownloadable": false,
@@ -161,66 +210,60 @@ export const contract = {
             "type": "object",
             "properties": {
               "email": {
-                "type": "string",
-                "format": "email",
-                "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
-              },
-              "username": {
-                "type": "string",
-                "minLength": 3
-              },
-              "name": {
-                "type": "string",
-                "minLength": 1
+                "type": "string"
               },
               "password": {
-                "type": "string",
-                "minLength": 8
+                "type": "string"
               }
             },
             "required": [
               "email",
-              "username",
-              "name",
               "password"
             ],
             "additionalProperties": false
           }
         },
         "output": {
-          "CREATED": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-              "state": {
-                "type": "string",
-                "const": "success"
-              }
-            },
-            "required": [
-              "state"
-            ],
-            "additionalProperties": false
-          },
-          "BAD_REQUEST": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "string"
-          }
-        }
-      },
-      "generateOTP": {
-        "method": "get",
-        "description": "Generate one-time password",
-        "noAuth": false,
-        "encrypted": false,
-        "isDownloadable": false,
-        "media": null,
-        "input": {},
-        "output": {
           "OK": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "string"
-          }
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "const": "2fa_required"
+                  },
+                  "tid": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "state",
+                  "tid"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "const": "success"
+                  },
+                  "session": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "state",
+                  "session"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "UNAUTHORIZED": true
         }
       },
       "getUserData": {
@@ -357,9 +400,24 @@ export const contract = {
           "NOT_FOUND": true
         }
       },
-      "login": {
+      "generateOTP": {
+        "method": "get",
+        "description": "Generate one-time password",
+        "noAuth": false,
+        "encrypted": false,
+        "isDownloadable": false,
+        "media": null,
+        "input": {},
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "string"
+          }
+        }
+      },
+      "createFirstUser": {
         "method": "post",
-        "description": "Authenticate user with credentials",
+        "description": "Create the first user (only works when no users exist)",
         "noAuth": true,
         "encrypted": true,
         "isDownloadable": false,
@@ -370,15 +428,77 @@ export const contract = {
             "type": "object",
             "properties": {
               "email": {
-                "type": "string"
+                "type": "string",
+                "format": "email",
+                "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+              },
+              "username": {
+                "type": "string",
+                "minLength": 3
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
               },
               "password": {
-                "type": "string"
+                "type": "string",
+                "minLength": 8
               }
             },
             "required": [
               "email",
+              "username",
+              "name",
               "password"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "output": {
+          "CREATED": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "state": {
+                "type": "string",
+                "const": "success"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "additionalProperties": false
+          },
+          "BAD_REQUEST": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "oauth": {
+      "verify": {
+        "method": "post",
+        "description": "Verify OAuth authorization callback",
+        "noAuth": true,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {
+          "body": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "provider": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "provider",
+              "code"
             ],
             "additionalProperties": false
           }
@@ -405,64 +525,21 @@ export const contract = {
                 "additionalProperties": false
               },
               {
-                "type": "object",
-                "properties": {
-                  "state": {
-                    "type": "string",
-                    "const": "success"
-                  },
-                  "session": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "state",
-                  "session"
-                ],
-                "additionalProperties": false
+                "type": "string"
               }
             ]
           },
-          "UNAUTHORIZED": true
-        }
-      },
-      "validateOTP": {
-        "method": "post",
-        "description": "Verify one-time password",
-        "noAuth": false,
-        "encrypted": false,
-        "isDownloadable": false,
-        "media": null,
-        "input": {
-          "body": {
+          "UNAUTHORIZED": true,
+          "BAD_REQUEST": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-              "otp": {
-                "type": "string"
-              },
-              "otpId": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "otp",
-              "otpId"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "output": {
-          "OK": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "boolean"
+            "type": "string"
           }
         }
       },
-      "verifySessionToken": {
-        "method": "post",
-        "description": "Validate user session token",
-        "noAuth": false,
+      "listProviders": {
+        "method": "get",
+        "description": "Retrieve available OAuth providers",
+        "noAuth": true,
         "encrypted": false,
         "isDownloadable": false,
         "media": null,
@@ -470,13 +547,13 @@ export const contract = {
         "output": {
           "OK": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "boolean"
-          },
-          "UNAUTHORIZED": true
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
-      }
-    },
-    "oauth": {
+      },
       "getEndpoint": {
         "method": "get",
         "description": "Get OAuth authorization URL for provider",
@@ -542,29 +619,13 @@ export const contract = {
             "type": "string"
           }
         }
-      },
-      "listProviders": {
-        "method": "get",
-        "description": "Retrieve available OAuth providers",
-        "noAuth": true,
-        "encrypted": false,
-        "isDownloadable": false,
-        "media": null,
-        "input": {},
-        "output": {
-          "OK": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "verify": {
+      }
+    },
+    "2fa": {
+      "verifyAndEnable": {
         "method": "post",
-        "description": "Verify OAuth authorization callback",
-        "noAuth": true,
+        "description": "Verify and activate two-factor authentication",
+        "noAuth": false,
         "encrypted": true,
         "isDownloadable": false,
         "media": null,
@@ -573,130 +634,19 @@ export const contract = {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
             "properties": {
-              "provider": {
-                "type": "string"
-              },
-              "code": {
+              "otp": {
                 "type": "string"
               }
             },
             "required": [
-              "provider",
-              "code"
+              "otp"
             ],
             "additionalProperties": false
           }
         },
         "output": {
-          "OK": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "anyOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "state": {
-                    "type": "string",
-                    "const": "2fa_required"
-                  },
-                  "tid": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "state",
-                  "tid"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "string"
-              }
-            ]
-          },
-          "UNAUTHORIZED": true,
-          "BAD_REQUEST": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "string"
-          }
-        }
-      }
-    },
-    "2fa": {
-      "disable": {
-        "method": "post",
-        "description": "Disable two-factor authentication",
-        "noAuth": false,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": null,
-        "input": {},
-        "output": {
-          "NO_CONTENT": true
-        }
-      },
-      "generateAuthenticatorLink": {
-        "method": "get",
-        "description": "Generate authenticator app setup link",
-        "noAuth": false,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": null,
-        "input": {},
-        "output": {
-          "OK": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "string"
-          }
-        }
-      },
-      "getChallenge": {
-        "method": "get",
-        "description": "Retrieve 2FA challenge token",
-        "noAuth": false,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": null,
-        "input": {},
-        "output": {
-          "OK": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "string"
-          }
-        }
-      },
-      "requestOTP": {
-        "method": "get",
-        "description": "Request OTP for two-factor authentication",
-        "noAuth": true,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": null,
-        "input": {
-          "query": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-              "email": {
-                "type": "string",
-                "format": "email",
-                "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
-              }
-            },
-            "required": [
-              "email"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "output": {
-          "OK": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "string"
-          },
-          "BAD_REQUEST": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "string"
-          }
+          "NO_CONTENT": true,
+          "UNAUTHORIZED": true
         }
       },
       "verify": {
@@ -750,39 +700,89 @@ export const contract = {
           "UNAUTHORIZED": true
         }
       },
-      "verifyAndEnable": {
-        "method": "post",
-        "description": "Verify and activate two-factor authentication",
-        "noAuth": false,
+      "requestOTP": {
+        "method": "get",
+        "description": "Request OTP for two-factor authentication",
+        "noAuth": true,
         "encrypted": true,
         "isDownloadable": false,
         "media": null,
         "input": {
-          "body": {
+          "query": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
             "properties": {
-              "otp": {
-                "type": "string"
+              "email": {
+                "type": "string",
+                "format": "email",
+                "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
               }
             },
             "required": [
-              "otp"
+              "email"
             ],
             "additionalProperties": false
           }
         },
         "output": {
-          "NO_CONTENT": true,
-          "UNAUTHORIZED": true
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "string"
+          },
+          "BAD_REQUEST": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "string"
+          }
+        }
+      },
+      "getChallenge": {
+        "method": "get",
+        "description": "Retrieve 2FA challenge token",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {},
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "string"
+          }
+        }
+      },
+      "generateAuthenticatorLink": {
+        "method": "get",
+        "description": "Generate authenticator app setup link",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {},
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "string"
+          }
+        }
+      },
+      "disable": {
+        "method": "post",
+        "description": "Disable two-factor authentication",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {},
+        "output": {
+          "NO_CONTENT": true
         }
       }
     },
     "qrLogin": {
-      "approveQRLogin": {
+      "registerQRSession": {
         "method": "post",
-        "description": "Approve a QR login request",
-        "noAuth": false,
+        "description": "Register a new QR login session",
+        "noAuth": true,
         "encrypted": true,
         "isDownloadable": false,
         "media": null,
@@ -795,33 +795,36 @@ export const contract = {
                 "type": "string",
                 "format": "uuid",
                 "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-              }
-            },
-            "required": [
-              "sessionId"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "output": {
-          "OK": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-              "success": {
-                "type": "boolean"
               },
               "browserInfo": {
                 "type": "string"
               }
             },
             "required": [
-              "success",
+              "sessionId",
               "browserInfo"
             ],
             "additionalProperties": false
+          }
+        },
+        "output": {
+          "CREATED": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "sessionId": {
+                "type": "string"
+              },
+              "expiresAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "sessionId",
+              "expiresAt"
+            ],
+            "additionalProperties": false
           },
-          "NOT_FOUND": true,
           "BAD_REQUEST": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "string"
@@ -920,10 +923,10 @@ export const contract = {
           }
         }
       },
-      "registerQRSession": {
+      "approveQRLogin": {
         "method": "post",
-        "description": "Register a new QR login session",
-        "noAuth": true,
+        "description": "Approve a QR login request",
+        "noAuth": false,
         "encrypted": true,
         "isDownloadable": false,
         "media": null,
@@ -936,36 +939,33 @@ export const contract = {
                 "type": "string",
                 "format": "uuid",
                 "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+            },
+            "required": [
+              "sessionId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "success": {
+                "type": "boolean"
               },
               "browserInfo": {
                 "type": "string"
               }
             },
             "required": [
-              "sessionId",
+              "success",
               "browserInfo"
             ],
             "additionalProperties": false
-          }
-        },
-        "output": {
-          "CREATED": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-              "sessionId": {
-                "type": "string"
-              },
-              "expiresAt": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "sessionId",
-              "expiresAt"
-            ],
-            "additionalProperties": false
           },
+          "NOT_FOUND": true,
           "BAD_REQUEST": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "string"
@@ -974,49 +974,6 @@ export const contract = {
       }
     },
     "settings": {
-      "deleteAvatar": {
-        "method": "post",
-        "description": "Remove user avatar",
-        "noAuth": false,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": null,
-        "input": {},
-        "output": {
-          "NO_CONTENT": true
-        }
-      },
-      "requestPasswordReset": {
-        "method": "post",
-        "description": "Request password reset email",
-        "noAuth": false,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": null,
-        "input": {},
-        "output": {
-          "NO_CONTENT": true
-        }
-      },
-      "updateAvatar": {
-        "method": "post",
-        "description": "Upload new user avatar",
-        "noAuth": false,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": {
-          "file": {
-            "optional": false
-          }
-        },
-        "input": {},
-        "output": {
-          "OK": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "string"
-          }
-        }
-      },
       "updateProfile": {
         "method": "post",
         "description": "Update user profile information",
@@ -1060,12 +1017,29 @@ export const contract = {
         "output": {
           "NO_CONTENT": true
         }
-      }
-    },
-    "personalization": {
-      "deleteBgImage": {
+      },
+      "updateAvatar": {
         "method": "post",
-        "description": "Remove background image",
+        "description": "Upload new user avatar",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": {
+          "file": {
+            "optional": false
+          }
+        },
+        "input": {},
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "string"
+          }
+        }
+      },
+      "requestPasswordReset": {
+        "method": "post",
+        "description": "Request password reset email",
         "noAuth": false,
         "encrypted": true,
         "isDownloadable": false,
@@ -1075,15 +1049,130 @@ export const contract = {
           "NO_CONTENT": true
         }
       },
-      "getGoogleFont": {
-        "method": "get",
-        "description": "Get details of a specific Google Font",
+      "deleteAvatar": {
+        "method": "post",
+        "description": "Remove user avatar",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {},
+        "output": {
+          "NO_CONTENT": true
+        }
+      }
+    },
+    "personalization": {
+      "updatePersonalization": {
+        "method": "post",
+        "description": "Update user personalization preferences",
         "noAuth": false,
         "encrypted": true,
         "isDownloadable": false,
         "media": null,
         "input": {
-          "query": {
+          "body": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "fontFamily": {
+                    "type": "string"
+                  },
+                  "theme": {
+                    "type": "string"
+                  },
+                  "color": {
+                    "type": "string"
+                  },
+                  "bgTemp": {
+                    "type": "string"
+                  },
+                  "language": {
+                    "type": "string"
+                  },
+                  "fontScale": {
+                    "type": "number"
+                  },
+                  "borderRadiusMultiplier": {
+                    "type": "number"
+                  },
+                  "bordered": {
+                    "type": "boolean"
+                  },
+                  "dashboardLayout": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "backdropFilters": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "output": {
+          "NO_CONTENT": true,
+          "BAD_REQUEST": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "string"
+          }
+        }
+      },
+      "updateBgImage": {
+        "method": "post",
+        "description": "Upload new background image",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": {
+          "file": {
+            "optional": false
+          }
+        },
+        "input": {},
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "collectionId": {
+                "type": "string"
+              },
+              "recordId": {
+                "type": "string"
+              },
+              "fieldId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "collectionId",
+              "recordId",
+              "fieldId"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "toggleGoogleFontsPin": {
+        "method": "post",
+        "description": "Pin or unpin a Google Font",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {
+          "body": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
             "properties": {
@@ -1098,20 +1187,27 @@ export const contract = {
           }
         },
         "output": {
+          "NO_CONTENT": true,
+          "UNAUTHORIZED": true
+        }
+      },
+      "listGoogleFontsPin": {
+        "method": "get",
+        "description": "Retrieve pinned Google Fonts",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {},
+        "output": {
           "OK": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-              "enabled": {
-                "type": "boolean"
-              },
-              "items": {}
-            },
-            "required": [
-              "enabled"
-            ],
-            "additionalProperties": false
-          }
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "UNAUTHORIZED": true
         }
       },
       "listGoogleFonts": {
@@ -1268,34 +1364,15 @@ export const contract = {
           }
         }
       },
-      "listGoogleFontsPin": {
+      "getGoogleFont": {
         "method": "get",
-        "description": "Retrieve pinned Google Fonts",
-        "noAuth": false,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": null,
-        "input": {},
-        "output": {
-          "OK": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "UNAUTHORIZED": true
-        }
-      },
-      "toggleGoogleFontsPin": {
-        "method": "post",
-        "description": "Pin or unpin a Google Font",
+        "description": "Get details of a specific Google Font",
         "noAuth": false,
         "encrypted": true,
         "isDownloadable": false,
         "media": null,
         "input": {
-          "body": {
+          "query": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
             "properties": {
@@ -1310,246 +1387,36 @@ export const contract = {
           }
         },
         "output": {
-          "NO_CONTENT": true,
-          "UNAUTHORIZED": true
-        }
-      },
-      "updateBgImage": {
-        "method": "post",
-        "description": "Upload new background image",
-        "noAuth": false,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": {
-          "file": {
-            "optional": false
-          }
-        },
-        "input": {},
-        "output": {
           "OK": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object",
             "properties": {
-              "collectionId": {
-                "type": "string"
+              "enabled": {
+                "type": "boolean"
               },
-              "recordId": {
-                "type": "string"
-              },
-              "fieldId": {
-                "type": "string"
-              }
+              "items": {}
             },
             "required": [
-              "collectionId",
-              "recordId",
-              "fieldId"
+              "enabled"
             ],
             "additionalProperties": false
           }
         }
       },
-      "updatePersonalization": {
+      "deleteBgImage": {
         "method": "post",
-        "description": "Update user personalization preferences",
+        "description": "Remove background image",
         "noAuth": false,
         "encrypted": true,
         "isDownloadable": false,
         "media": null,
-        "input": {
-          "body": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-              "data": {
-                "type": "object",
-                "properties": {
-                  "fontFamily": {
-                    "type": "string"
-                  },
-                  "theme": {
-                    "type": "string"
-                  },
-                  "color": {
-                    "type": "string"
-                  },
-                  "bgTemp": {
-                    "type": "string"
-                  },
-                  "language": {
-                    "type": "string"
-                  },
-                  "fontScale": {
-                    "type": "number"
-                  },
-                  "borderRadiusMultiplier": {
-                    "type": "number"
-                  },
-                  "bordered": {
-                    "type": "boolean"
-                  },
-                  "dashboardLayout": {
-                    "type": "object",
-                    "additionalProperties": {}
-                  },
-                  "backdropFilters": {
-                    "type": "object",
-                    "additionalProperties": {}
-                  }
-                },
-                "additionalProperties": false
-              }
-            },
-            "required": [
-              "data"
-            ],
-            "additionalProperties": false
-          }
-        },
+        "input": {},
         "output": {
-          "NO_CONTENT": true,
-          "BAD_REQUEST": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "string"
-          }
+          "NO_CONTENT": true
         }
       }
     },
     "customFonts": {
-      "get": {
-        "method": "get",
-        "description": "Get a specific custom font by ID",
-        "noAuth": false,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": null,
-        "input": {
-          "query": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "output": {
-          "OK": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "displayName": {
-                "type": "string"
-              },
-              "family": {
-                "type": "string"
-              },
-              "weight": {
-                "type": "number"
-              },
-              "file": {
-                "type": "string"
-              },
-              "collectionId": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "displayName",
-              "family",
-              "weight",
-              "file",
-              "collectionId"
-            ],
-            "additionalProperties": false
-          },
-          "NOT_FOUND": true
-        }
-      },
-      "list": {
-        "method": "get",
-        "description": "List all custom uploaded fonts",
-        "noAuth": false,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": null,
-        "input": {},
-        "output": {
-          "OK": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "displayName": {
-                  "type": "string"
-                },
-                "family": {
-                  "type": "string"
-                },
-                "weight": {
-                  "type": "number"
-                },
-                "file": {
-                  "type": "string"
-                },
-                "collectionId": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "displayName",
-                "family",
-                "weight",
-                "file",
-                "collectionId"
-              ],
-              "additionalProperties": false
-            }
-          }
-        }
-      },
-      "remove": {
-        "method": "post",
-        "description": "Delete a custom font",
-        "noAuth": false,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": null,
-        "input": {
-          "query": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "output": {
-          "NO_CONTENT": true,
-          "NOT_FOUND": true
-        }
-      },
       "upload": {
         "method": "post",
         "description": "Upload a new custom font",
@@ -1636,6 +1503,139 @@ export const contract = {
           "BAD_REQUEST": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "string"
+          },
+          "NOT_FOUND": true
+        }
+      },
+      "remove": {
+        "method": "post",
+        "description": "Delete a custom font",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {
+          "query": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "output": {
+          "NO_CONTENT": true,
+          "NOT_FOUND": true
+        }
+      },
+      "list": {
+        "method": "get",
+        "description": "List all custom uploaded fonts",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {},
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                },
+                "family": {
+                  "type": "string"
+                },
+                "weight": {
+                  "type": "number"
+                },
+                "file": {
+                  "type": "string"
+                },
+                "collectionId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "displayName",
+                "family",
+                "weight",
+                "file",
+                "collectionId"
+              ],
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "get": {
+        "method": "get",
+        "description": "Get a specific custom font by ID",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {
+          "query": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": "string"
+              },
+              "family": {
+                "type": "string"
+              },
+              "weight": {
+                "type": "number"
+              },
+              "file": {
+                "type": "string"
+              },
+              "collectionId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "displayName",
+              "family",
+              "weight",
+              "file",
+              "collectionId"
+            ],
+            "additionalProperties": false
           },
           "NOT_FOUND": true
         }
@@ -2419,25 +2419,25 @@ export const contract = {
     }
   },
   "modules": {
-    "checkModuleAvailability": {
-      "method": "get",
-      "description": "Check if a module is available (installed)",
+    "uninstall": {
+      "method": "post",
+      "description": "Uninstall a module",
       "noAuth": false,
       "encrypted": true,
       "isDownloadable": false,
       "media": null,
       "input": {
-        "query": {
+        "body": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {
-            "moduleId": {
+            "moduleName": {
               "type": "string",
               "minLength": 1
             }
           },
           "required": [
-            "moduleId"
+            "moduleName"
           ],
           "additionalProperties": false
         }
@@ -2445,74 +2445,19 @@ export const contract = {
       "output": {
         "OK": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "boolean"
-        }
-      }
-    },
-    "list": {
-      "method": "get",
-      "description": "List installed modules with metadata",
-      "noAuth": false,
-      "encrypted": true,
-      "isDownloadable": false,
-      "media": null,
-      "input": {},
-      "output": {
-        "OK": {
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "displayName": {
-                "type": "string"
-              },
-              "version": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "author": {
-                "type": "string"
-              },
-              "icon": {
-                "type": "string"
-              },
-              "category": {
-                "type": "string"
-              },
-              "isInternal": {
-                "type": "boolean"
-              },
-              "isDevMode": {
-                "type": "boolean"
-              },
-              "hasDist": {
-                "type": "boolean"
-              },
-              "hasSource": {
-                "type": "boolean"
-              }
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
             },
-            "required": [
-              "name",
-              "displayName",
-              "version",
-              "description",
-              "author",
-              "icon",
-              "category",
-              "isInternal",
-              "isDevMode",
-              "hasDist",
-              "hasSource"
-            ],
-            "additionalProperties": false
-          }
+            "error": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "success"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -2606,25 +2551,92 @@ export const contract = {
         }
       }
     },
-    "uninstall": {
-      "method": "post",
-      "description": "Uninstall a module",
+    "list": {
+      "method": "get",
+      "description": "List installed modules with metadata",
+      "noAuth": false,
+      "encrypted": true,
+      "isDownloadable": false,
+      "media": null,
+      "input": {},
+      "output": {
+        "OK": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "author": {
+                "type": "string"
+              },
+              "icon": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string"
+              },
+              "isInternal": {
+                "type": "boolean"
+              },
+              "isDevMode": {
+                "type": "boolean"
+              },
+              "hasDist": {
+                "type": "boolean"
+              },
+              "hasSource": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name",
+              "displayName",
+              "version",
+              "description",
+              "author",
+              "icon",
+              "category",
+              "isInternal",
+              "isDevMode",
+              "hasDist",
+              "hasSource"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "checkModuleAvailability": {
+      "method": "get",
+      "description": "Check if a module is available (installed)",
       "noAuth": false,
       "encrypted": true,
       "isDownloadable": false,
       "media": null,
       "input": {
-        "body": {
+        "query": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {
-            "moduleName": {
+            "moduleId": {
               "type": "string",
               "minLength": 1
             }
           },
           "required": [
-            "moduleName"
+            "moduleId"
           ],
           "additionalProperties": false
         }
@@ -2632,23 +2644,76 @@ export const contract = {
       "output": {
         "OK": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "success": {
-              "type": "boolean"
-            },
-            "error": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "success"
-          ],
-          "additionalProperties": false
+          "type": "boolean"
         }
       }
     },
     "categories": {
+      "update": {
+        "method": "post",
+        "description": "Update the category display order",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {
+          "body": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": [
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "success"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "list": {
+        "method": "get",
+        "description": "Get the category display order",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {},
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
       "aiTranslate": {
         "method": "post",
         "description": "Translate a specific category into desired languages",
@@ -2692,71 +2757,6 @@ export const contract = {
                 "type": "null"
               }
             ]
-          }
-        }
-      },
-      "list": {
-        "method": "get",
-        "description": "Get the category display order",
-        "noAuth": false,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": null,
-        "input": {},
-        "output": {
-          "OK": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              }
-            }
-          }
-        }
-      },
-      "update": {
-        "method": "post",
-        "description": "Update the category display order",
-        "noAuth": false,
-        "encrypted": true,
-        "isDownloadable": false,
-        "media": null,
-        "input": {
-          "body": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-              "data": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                }
-              }
-            },
-            "required": [
-              "data"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "output": {
-          "OK": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {
-              "success": {
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "success"
-            ],
-            "additionalProperties": false
           }
         }
       }
