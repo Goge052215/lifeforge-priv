@@ -7,9 +7,34 @@ import path from 'path'
 
 import { IPBService } from '@lifeforge/server-utils'
 
+import { connectToPocketBase, validateEnvironmentVariables } from './dbUtils'
 import PBService from './PBService'
 
 const logger = createServiceLogger('API Key Vault')
+let privilegedAPIKeysPBPromise: Promise<PBService<any>> | null = null
+
+export async function getAPIKeysPBService(): Promise<PBService<{ entries: any }>> {
+  if (!privilegedAPIKeysPBPromise) {
+    privilegedAPIKeysPBPromise = connectToPocketBase(
+      validateEnvironmentVariables()
+    )
+      .then(
+        pb => new PBService(pb, { id: 'api_keys' }) as PBService<{ entries: any }>
+      )
+      .catch(error => {
+        privilegedAPIKeysPBPromise = null
+        throw error
+      })
+  }
+
+  const apiKeysPB = await privilegedAPIKeysPBPromise
+
+  if (!apiKeysPB) {
+    throw new Error('Failed to initialize privileged API keys service.')
+  }
+
+  return apiKeysPB as PBService<{ entries: any }>
+}
 
 export async function validateCallerAccess(
   callerModule: { source: 'app' | 'core'; id: string },
@@ -45,7 +70,6 @@ export async function validateCallerAccess(
 
 async function getAPIKey(
   id: string,
-  pb: PBService<{ entries: any }>,
   callerModule?: { source: 'app' | 'core'; id: string }
 ): Promise<string> {
   try {
@@ -57,9 +81,18 @@ async function getAPIKey(
 
     await validateCallerAccess(callerModule, id)
 
-    const { key } = await pb.instance
-      .collection('api_keys__entries')
-      .getFirstListItem(`keyId = "${id}"`)
+    const apiKeysPB = await getAPIKeysPBService()
+
+    const { key } = await apiKeysPB.getFirstListItem
+      .collection('entries')
+      .filter([
+        {
+          field: 'keyId',
+          operator: '=',
+          value: id
+        }
+      ])
+      .execute()
       .catch(err => {
         throw new Error(`Failed to retrieve API key for ${id}: ${err.message}`)
       })
@@ -81,9 +114,8 @@ async function getAPIKey(
 }
 
 export default function getAPIKeyFactory(
-  pb: IPBService<any>,
+  _pb: IPBService<any>,
   callerModule?: { source: 'app' | 'core'; id: string }
 ): (id: string) => Promise<string> {
-  return (id: string) =>
-    getAPIKey(id, pb as PBService<{ entries: any }>, callerModule)
+  return (id: string) => getAPIKey(id, callerModule)
 }

@@ -1,4 +1,5 @@
 import { decrypt2, encrypt2 } from '@functions/auth/encryption'
+import { getAPIKeysPBService } from '@functions/database/getAPIKey'
 import z from 'zod'
 
 import { forgeRouter } from '@lifeforge/server-utils'
@@ -20,8 +21,10 @@ const get = forge
       FORBIDDEN: true
     }
   })
-  .callback(async ({ pb, query: { keyId }, response }) => {
-    const entry = await pb.getFirstListItem
+  .callback(async ({ query: { keyId }, response }) => {
+    const apiKeysPB = await getAPIKeysPBService()
+
+    const entry = await apiKeysPB.getFirstListItem
       .collection('entries')
       .filter([
         {
@@ -63,11 +66,13 @@ const list = forge
       OK: z.array(schema.entries)
     }
   })
-  .callback(async ({ pb, response }) => {
+  .callback(async ({ response }) => {
+    const apiKeysPB = await getAPIKeysPBService()
+
     // #region debug-point A:api-keys-list-entry
     fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: process.env.DEBUG_SESSION_ID || 'api-keys-500', runId: 'pre-fix', hypothesisId: 'A', location: 'entries.ts:list:entry', msg: '[DEBUG] api keys list requested', data: { hasMasterKey: Boolean(process.env.MASTER_KEY), pbHost: process.env.PB_HOST ? 'set' : 'missing' }, ts: Date.now() }) }).catch(() => {})
     // #endregion
-    const entries = await pb.getFullList
+    const entries = await apiKeysPB.getFullList
       .collection('entries')
       .sort(['name'])
       .execute()
@@ -104,8 +109,10 @@ const checkKeys = forge
       OK: z.boolean()
     }
   })
-  .callback(async ({ pb, query: { keys }, response }) => {
-    const allEntries = await pb.getFullList.collection('entries').execute()
+  .callback(async ({ query: { keys }, response }) => {
+    const apiKeysPB = await getAPIKeysPBService()
+
+    const allEntries = await apiKeysPB.getFullList.collection('entries').execute()
 
     return response.ok(
       keys
@@ -131,10 +138,12 @@ const create = forge
     }
   })
   .callback(
-    async ({ pb, body: { keyId, name, icon, key, exposable }, response }) => {
+    async ({ body: { keyId, name, icon, key, exposable }, response }) => {
+      const apiKeysPB = await getAPIKeysPBService()
+
       const encryptedKey = encrypt2(key, process.env.MASTER_KEY!)
 
-      const entry = await pb.create
+      const entry = await apiKeysPB.create
         .collection('entries')
         .data({
           keyId,
@@ -179,14 +188,15 @@ const update = forge
   })
   .callback(
     async ({
-      pb,
       query: { id },
       body: { keyId, name, icon, key, exposable, overrideKey },
       response
     }) => {
+      const apiKeysPB = await getAPIKeysPBService()
+
       const encryptedKey = encrypt2(key, process.env.MASTER_KEY!)
 
-      const updatedEntry = await pb.update
+      const updatedEntry = await apiKeysPB.update
         .collection('entries')
         .id(id)
         .data({
@@ -222,8 +232,10 @@ const remove = forge
       NOT_FOUND: true
     }
   })
-  .callback(async ({ pb, query: { id }, response }) => {
-    await pb.delete.collection('entries').id(id).execute()
+  .callback(async ({ query: { id }, response }) => {
+    const apiKeysPB = await getAPIKeysPBService()
+
+    await apiKeysPB.delete.collection('entries').id(id).execute()
 
     return response.noContent()
   })

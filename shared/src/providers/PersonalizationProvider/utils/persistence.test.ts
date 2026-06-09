@@ -32,6 +32,7 @@ describe('personalization persistence', () => {
         theme: 'dark',
         rawThemeColor: 'theme-lime',
         bgTemp: 'bg-neutral',
+        bgImage: 'https://example.com/bg.webp',
         language: 'en'
       },
       123
@@ -41,6 +42,7 @@ describe('personalization persistence', () => {
       theme: 'dark',
       rawThemeColor: 'theme-lime',
       bgTemp: 'bg-neutral',
+      bgImage: 'https://example.com/bg.webp',
       language: 'en',
       updatedAt: 123
     })

@@ -15,6 +15,7 @@ export interface PersistedPersonalization {
   theme?: ThemeMode
   rawThemeColor?: string
   bgTemp?: string
+  bgImage?: string
   backdropFilters?: IBackdropFilters
   language?: string
   dashboardLayout?: IDashboardLayout
@@ -96,6 +97,10 @@ export function sanitizePersistedPersonalization(
 
   if (typeof candidate.bgTemp === 'string') {
     sanitized.bgTemp = candidate.bgTemp
+  }
+
+  if (typeof candidate.bgImage === 'string') {
+    sanitized.bgImage = candidate.bgImage
   }
 
   if (isBackdropFilters(candidate.backdropFilters)) {

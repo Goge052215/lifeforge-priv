@@ -93,6 +93,9 @@ function DashboardGrid({
         rowHeight={100}
         width={width}
         onLayoutChange={(_, layouts) => {
+          // #region debug-point E:dashboard-layout-grid-change
+          fetch('http://127.0.0.1:7778/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'dashboard-layout-persistence', runId: 'pre-fix', hypothesisId: 'E', location: 'DashboardGrid.tsx:95', msg: '[DEBUG] grid emitted dashboard layout change', data: { breakpoints: Object.keys(layouts || {}), counts: Object.fromEntries(Object.entries(layouts || {}).map(([key, value]) => [key, Array.isArray(value) ? value.length : -1])) }, ts: Date.now() }) }).catch(() => {})
+          // #endregion
           changeDashboardLayout(layouts as never)
         }}
       >

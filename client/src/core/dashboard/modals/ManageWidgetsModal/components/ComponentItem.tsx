@@ -52,6 +52,9 @@ function ComponentListItem({
     const newEnabledWidgets = JSON.parse(JSON.stringify(enabledWidgets))
 
     if (Object.keys(newEnabledWidgets).length === 0) {
+      // #region debug-point D:dashboard-layout-first-widget
+      fetch('http://127.0.0.1:7778/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'dashboard-layout-persistence', runId: 'pre-fix', hypothesisId: 'D', location: 'ComponentItem.tsx:54', msg: '[DEBUG] adding first dashboard widget to empty layout', data: { widgetId: id, existingBreakpoints: Object.keys(newEnabledWidgets || {}) }, ts: Date.now() }) }).catch(() => {})
+      // #endregion
       for (const breakpoint of ['lg', 'md', 'sm', 'xs', 'xxs']) {
         newEnabledWidgets[breakpoint] = [
           {
@@ -96,6 +99,10 @@ function ComponentListItem({
         JSON.parse(JSON.stringify(enabledWidgets)) as IDashboardLayout
       ).map(([k, value]) => [k, value.filter(i => i.i !== id)])
     )
+
+    // #region debug-point D:dashboard-layout-remove-widget
+    fetch('http://127.0.0.1:7778/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'dashboard-layout-persistence', runId: 'pre-fix', hypothesisId: 'D', location: 'ComponentItem.tsx:100', msg: '[DEBUG] removing dashboard widget from layout', data: { widgetId: id, counts: Object.fromEntries(Object.entries(newEnabledWidgets || {}).map(([key, value]) => [key, Array.isArray(value) ? value.length : -1])) }, ts: Date.now() }) }).catch(() => {})
+    // #endregion
 
     if (Object.values(newEnabledWidgets).every(e => e.length === 0)) {
       setDashboardLayout({})

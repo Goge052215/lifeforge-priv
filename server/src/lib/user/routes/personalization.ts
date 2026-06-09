@@ -348,6 +348,12 @@ export const updatePersonalization = forge
     }
 
     try {
+      if (toBeUpdated.dashboardLayout !== undefined) {
+        // #region debug-point B:dashboard-layout-persist-attempt
+        fetch('http://127.0.0.1:7778/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'dashboard-layout-persistence', runId: 'pre-fix', hypothesisId: 'B', location: 'personalization.ts:350', msg: '[DEBUG] persisting dashboard layout to backend', data: { userId: pb.instance.authStore.record?.id, breakpoints: Object.keys((toBeUpdated.dashboardLayout as Record<string, unknown>) || {}), counts: Object.fromEntries(Object.entries((toBeUpdated.dashboardLayout as Record<string, unknown[]>) || {}).map(([key, value]) => [key, Array.isArray(value) ? value.length : -1])) }, ts: Date.now() }) }).catch(() => {})
+        // #endregion
+      }
+
       await pb.update
         .collection('users')
         .id(pb.instance.authStore.record.id)

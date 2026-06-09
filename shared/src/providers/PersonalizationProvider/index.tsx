@@ -232,6 +232,7 @@ export default function PersonalizationProvider({
       theme,
       rawThemeColor,
       bgTemp,
+      bgImage,
       backdropFilters,
       language,
       dashboardLayout
@@ -244,6 +245,7 @@ export default function PersonalizationProvider({
     theme,
     rawThemeColor,
     bgTemp,
+    bgImage,
     backdropFilters,
     language,
     dashboardLayout

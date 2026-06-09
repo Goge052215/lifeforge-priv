@@ -107,6 +107,9 @@ function UserPersonalizationProvider({
   }
 
   async function changeDashboardLayout(layout: IDashboardLayout) {
+    // #region debug-point A:dashboard-layout-sync-request
+    fetch('http://127.0.0.1:7778/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'dashboard-layout-persistence', runId: 'pre-fix', hypothesisId: 'A', location: 'UserPersonalizationProvider.tsx:109', msg: '[DEBUG] requesting dashboard layout sync', data: { breakpoints: Object.keys(layout || {}), counts: Object.fromEntries(Object.entries(layout || {}).map(([key, value]) => [key, Array.isArray(value) ? value.length : -1])) }, ts: Date.now() }) }).catch(() => {})
+    // #endregion
     await syncUserData({ dashboardLayout: layout }, setUserData)
   }
 
@@ -158,6 +161,8 @@ function UserPersonalizationProvider({
           fieldId: userData.bgImage
         })
       )
+    } else {
+      setBgImage('')
     }
 
     if (isNonEmptyString(userData?.language)) {
@@ -165,6 +170,9 @@ function UserPersonalizationProvider({
     }
 
     if (isDashboardLayout(userData?.dashboardLayout)) {
+      // #region debug-point C:dashboard-layout-hydration
+      fetch('http://127.0.0.1:7778/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'dashboard-layout-persistence', runId: 'pre-fix', hypothesisId: 'C', location: 'UserPersonalizationProvider.tsx:169', msg: '[DEBUG] hydrating dashboard layout from user data', data: { breakpoints: Object.keys(userData.dashboardLayout || {}), counts: Object.fromEntries(Object.entries(userData.dashboardLayout || {}).map(([key, value]) => [key, Array.isArray(value) ? value.length : -1])) }, ts: Date.now() }) }).catch(() => {})
+      // #endregion
       setDashboardLayout(userData.dashboardLayout)
     }
 
