@@ -62,3 +62,4 @@ locales/*
 
 server_private.pem
 server_public.pem
+.vercel
