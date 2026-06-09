@@ -101,8 +101,8 @@ function createPinoLogger(options: LoggerOptions): pino.Logger {
   const level = options.level ?? config.level
 
   const isPretty = options.pretty ?? !config.isProduction
-
-  const fileEnabled = options.file?.enabled ?? true
+  const isVercelRuntime = Boolean(process.env.VERCEL)
+  const fileEnabled = options.file?.enabled ?? !isVercelRuntime
 
   const streams: pino.StreamEntry[] = []
 
