@@ -37,11 +37,9 @@ async function syncUserData(
     })
 
     if (setUserData) {
-      setUserData((oldData: any) => {
-        if (!oldData) return oldData
+      const userData = await forgeAPI.user.auth.getUserData.query()
 
-        return { ...oldData, ...data }
-      })
+      setUserData(userData)
     }
   } catch {
     toast.error('Failed to update personalization settings')
@@ -112,7 +110,13 @@ function UserPersonalizationProvider({
   useEffect(() => {
     if (!userData) return
 
-    setTheme(userData.theme)
+    if (
+      userData.theme === 'light' ||
+      userData.theme === 'dark' ||
+      userData.theme === 'system'
+    ) {
+      setTheme(userData.theme)
+    }
 
     if (isNonEmptyString(userData?.color)) {
       setRawThemeColor(

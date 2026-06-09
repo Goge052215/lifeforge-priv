@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import tinycolor from 'tinycolor2'
 
 import type { ProxyTree } from '../../api/typescript/forge_proxy.types'
@@ -21,7 +21,8 @@ import type {
 import { getColorPalette } from './utils/themeColors'
 
 const DEFAULT_VALUE: IPersonalizationData = {
-  rootElement: typeof document !== 'undefined' ? document.body : null,
+  rootElement:
+    typeof document !== 'undefined' ? document.documentElement : null,
   fontFamily: 'Onest',
   fontScale: 1,
   borderRadiusMultiplier: 1,
@@ -76,7 +77,7 @@ export default function PersonalizationProvider({
     }
   }, [defaultValueOverride])
 
-  const rootElement = defaultValue.rootElement || document.body
+  const rootElement = defaultValue.rootElement || document.documentElement
 
   const [fontFamily, setFontFamily] = useState<string>(defaultValue.fontFamily)
 
@@ -119,15 +120,48 @@ export default function PersonalizationProvider({
     defaultValue.backdropFilters
   )
 
+  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => {
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    ) {
+      return 'dark'
+    }
+
+    return 'light'
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
+    const syncSystemTheme = (matches: boolean) => {
+      setSystemTheme(matches ? 'dark' : 'light')
+    }
+
+    syncSystemTheme(mediaQuery.matches)
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      syncSystemTheme(event.matches)
+    }
+
+    mediaQuery.addEventListener('change', handleChange)
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange)
+    }
+  }, [])
+
   const derivedTheme = useMemo(() => {
     if (theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light'
+      return systemTheme
     }
 
     return theme
-  }, [theme])
+  }, [theme, systemTheme])
 
   const themeColor = useMemo(
     () =>
