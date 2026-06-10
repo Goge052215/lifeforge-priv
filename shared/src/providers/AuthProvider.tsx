@@ -209,10 +209,25 @@ export default function AuthProvider({
           throw new Error('Invalid state')
         }
 
-        const session = await forgeAPI.user.oauth.verify.mutate({
-          code,
-          provider: storedProvider
+        const verifyResponse = await fetch(forgeAPI.user.oauth.verify.endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            code,
+            provider: storedProvider,
+            state
+          })
         })
+
+        const verifyPayload = await verifyResponse.json()
+
+        if (!verifyResponse.ok || verifyPayload.state !== 'success') {
+          throw new Error('Invalid login attempt')
+        }
+
+        const session = verifyPayload.data
 
         if (typeof session !== 'string') {
           if (session.state !== '2fa_required') {

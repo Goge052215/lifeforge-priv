@@ -15,13 +15,6 @@ import * as qrLoginRoutes from './routes/qrLogin'
 import * as settingsRoutes from './routes/settings'
 import * as twoFARoutes from './routes/twoFA'
 
-export const currentSession = {
-  token: '',
-  tokenId: '',
-  tokenExpireAt: '',
-  otpId: ''
-}
-
 export default forgeRouter({
   exists: forge
     .query({

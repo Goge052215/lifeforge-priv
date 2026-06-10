@@ -59,7 +59,7 @@ router.use('/modules/:moduleName/*', (req, res, next) => {
   // Use dist-docker in Docker mode, dist otherwise
   const distDir = process.env.DOCKER_MODE === 'true' ? 'dist-docker' : 'dist'
 
-  const moduleDistPath = path.join(
+  const moduleDistPath = path.resolve(
     ROOT_DIR,
     'apps',
     moduleName,
@@ -67,7 +67,14 @@ router.use('/modules/:moduleName/*', (req, res, next) => {
     distDir
   )
 
-  const resolvedPath = path.join(moduleDistPath, filePath)
+  const resolvedPath = path.resolve(moduleDistPath, filePath)
+  const moduleRootPrefix = `${moduleDistPath}${path.sep}`
+
+  if (resolvedPath !== moduleDistPath && !resolvedPath.startsWith(moduleRootPrefix)) {
+    next()
+
+    return
+  }
 
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
@@ -75,7 +82,7 @@ router.use('/modules/:moduleName/*', (req, res, next) => {
   res.sendFile(resolvedPath, err => {
     if (!err) return
 
-    const fallbackPath = path.join(moduleDistPath, 'index.html')
+    const fallbackPath = path.resolve(moduleDistPath, 'index.html')
 
     if (fallbackPath === resolvedPath) {
       next()

@@ -1,11 +1,11 @@
-import dayjs from 'dayjs'
-import { v4 } from 'uuid'
 import z from 'zod'
 
-import { currentSession } from '..'
 import forge from '../forge'
-
-let currentCodeVerifier: string | null = null
+import {
+  consumePendingOAuthState,
+  createPendingAuthSession,
+  createPendingOAuthState
+} from '../utils/authFlowState'
 
 export const listProviders = forge
   .query({
@@ -61,7 +61,7 @@ export const getEndpoint = forge
       return response.badRequest('Invalid provider')
     }
 
-    currentCodeVerifier = endpoint.codeVerifier
+    createPendingOAuthState(endpoint.state, endpoint.codeVerifier)
 
     return response.ok(endpoint)
   })
@@ -73,7 +73,8 @@ export const verify = forge
     input: {
       body: z.object({
         provider: z.string(),
-        code: z.string()
+        code: z.string(),
+        state: z.string()
       })
     },
     output: {
@@ -89,14 +90,21 @@ export const verify = forge
     }
   })
   .callback(
-    async ({ req, pb, body: { provider: providerName, code }, response }) => {
+    async ({
+      req,
+      pb,
+      body: { provider: providerName, code, state },
+      response
+    }) => {
       const providers = await pb.instance.collection('users').listAuthMethods()
 
       const provider = providers.oauth2.providers.find(
         item => item.name === providerName
       )
 
-      if (!provider || !currentCodeVerifier) {
+      const pendingOAuthState = consumePendingOAuthState(state)
+
+      if (!provider || !pendingOAuthState) {
         return response.badRequest('Invalid login attempt')
       }
 
@@ -106,7 +114,7 @@ export const verify = forge
           .authWithOAuth2Code(
             provider.name,
             code,
-            currentCodeVerifier,
+            pendingOAuthState.codeVerifier,
             `${req.headers.origin}/auth`,
             {
               emailVisibility: false
@@ -115,15 +123,15 @@ export const verify = forge
 
         if (authData) {
           if (pb.instance.authStore.record?.twoFASecret) {
-            currentSession.token = pb.instance.authStore.token
-            currentSession.tokenExpireAt = dayjs()
-              .add(5, 'minutes')
-              .toISOString()
-            currentSession.tokenId = v4()
+            const tid = createPendingAuthSession({
+              token: pb.instance.authStore.token,
+              email: pb.instance.authStore.record.email,
+              userId: pb.instance.authStore.record.id
+            })
 
             return response.ok({
               state: '2fa_required',
-              tid: currentSession.tokenId
+              tid
             })
           }
 
@@ -133,8 +141,6 @@ export const verify = forge
         }
       } catch {
         return response.unauthorized()
-      } finally {
-        currentCodeVerifier = null
       }
     }
   )

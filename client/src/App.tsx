@@ -13,6 +13,10 @@ function AppErrorFallback({ error }: FallbackProps) {
       ? `An unexpected error occurred: ${error.message}`
       : 'An unexpected error occurred.'
 
+  // #region debug-point A:app-error-fallback
+  fetch((globalThis as typeof globalThis & { DEBUG_SERVER_URL?: string }).DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: (globalThis as typeof globalThis & { DEBUG_SESSION_ID?: string }).DEBUG_SESSION_ID || 'settings-dynamic-import', runId: 'pre-fix', hypothesisId: 'A', location: 'App.tsx:10', msg: '[DEBUG] app error boundary captured runtime error', data: { message: error instanceof Error ? error.message : String(error), name: error instanceof Error ? error.name : undefined }, ts: Date.now() }) }).catch(() => {})
+  // #endregion
+
   return <ErrorScreen message={message} />
 }
 

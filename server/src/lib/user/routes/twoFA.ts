@@ -2,24 +2,20 @@ import { decrypt2, encrypt, encrypt2 } from '@functions/auth/encryption'
 import dayjs from 'dayjs'
 import PocketBase from 'pocketbase'
 import speakeasy from 'speakeasy'
-import { v4 } from 'uuid'
 import z from 'zod'
 
-import { currentSession } from '..'
 import forge from '../forge'
 import { removeSensitiveData, updateNullData } from '../utils/auth'
+import {
+  clearTwoFASetupState,
+  consumePendingAuthSession,
+  getOrCreateTwoFASetupState,
+  getPendingAuthSession,
+  getTwoFASetupState,
+  setPendingAuthSessionOTP,
+  setTwoFASetupTempCode
+} from '../utils/authFlowState'
 import { verifyAppOTP, verifyEmailOTP } from '../utils/otp'
-
-let challenge = v4()
-
-setTimeout(
-  () => {
-    challenge = v4()
-  },
-  1000 * 60 * 5
-)
-
-let tempCode = ''
 
 export const getChallenge = forge
   .query({
@@ -29,7 +25,9 @@ export const getChallenge = forge
       OK: z.string()
     }
   })
-  .callback(async ({ response }) => response.ok(challenge))
+  .callback(async ({ pb, response }) =>
+    response.ok(getOrCreateTwoFASetupState(pb.instance.authStore.record!.id).challenge)
+  )
 
 export const requestOTP = forge
   .query({
@@ -37,6 +35,7 @@ export const requestOTP = forge
     noAuth: true,
     input: {
       query: z.object({
+        tid: z.string(),
         email: z.string().email()
       })
     },
@@ -45,21 +44,27 @@ export const requestOTP = forge
       BAD_REQUEST: z.string()
     }
   })
-  .callback(async ({ pb, query: { email }, response }) => {
+  .callback(async ({ pb, query: { tid, email }, response }) => {
+    const pendingSession = getPendingAuthSession(tid)
+
+    if (!pendingSession || pendingSession.email !== email) {
+      return response.badRequest('Failed to request OTP')
+    }
+
     const otp = await pb.instance
       .collection('users')
-      .requestOTP(email)
+      .requestOTP(pendingSession.email)
       .catch(() => null)
 
     if (!otp) {
       return response.badRequest('Failed to request OTP')
     }
 
-    currentSession.tokenId = v4()
-    currentSession.otpId = otp.otpId
-    currentSession.tokenExpireAt = dayjs().add(5, 'minutes').toISOString()
+    if (!setPendingAuthSessionOTP(tid, otp.otpId)) {
+      return response.badRequest('Failed to request OTP')
+    }
 
-    return response.ok(currentSession.tokenId)
+    return response.ok(tid)
   })
 
 export const generateAuthenticatorLink = forge
@@ -79,12 +84,17 @@ export const generateAuthenticatorLink = forge
       response
     }) => {
       const { email } = pb.instance.authStore.record!
+      const userId = pb.instance.authStore.record!.id
+      const setupState = getOrCreateTwoFASetupState(userId)
+      const challenge = setupState.challenge
 
-      tempCode = speakeasy.generateSecret({
+      const tempCode = speakeasy.generateSecret({
         name: email,
         length: 32,
         issuer: 'LifeForge.'
       }).base32
+
+      setTwoFASetupTempCode(userId, tempCode)
 
       return response.ok(
         encrypt2(
@@ -120,13 +130,20 @@ export const verifyAndEnable = forge
       },
       response
     }) => {
+      const userId = pb.instance.authStore.record!.id
+      const setupState = getTwoFASetupState(userId)
+
+      if (!setupState?.tempCode) {
+        return response.unauthorized()
+      }
+
       const decryptedOTP = decrypt2(
         decrypt2(otp, authorization!.replace('Bearer ', '')),
-        challenge
+        setupState.challenge
       )
 
       const verified = speakeasy.totp.verify({
-        secret: tempCode,
+        secret: setupState.tempCode,
         encoding: 'base32',
         token: decryptedOTP
       })
@@ -140,11 +157,13 @@ export const verifyAndEnable = forge
         .id(pb.instance.authStore.record!.id)
         .data({
           twoFASecret: encrypt(
-            Buffer.from(tempCode),
+            Buffer.from(setupState.tempCode),
             process.env.MASTER_KEY!
           ).toString('base64')
         })
         .execute()
+
+      clearTwoFASetupState(userId)
 
       return response.noContent()
     }
@@ -189,23 +208,15 @@ export const verify = forge
     }
   })
   .callback(async ({ body: { otp, tid, type }, response }) => {
+    const pendingSession = getPendingAuthSession(tid)
+
+    if (!pendingSession || dayjs().isAfter(dayjs(pendingSession.expiresAt))) {
+      return response.unauthorized()
+    }
+
     const pb = new PocketBase(process.env.PB_HOST)
 
-    if (tid !== currentSession.tokenId) {
-      return response.unauthorized()
-    }
-
-    if (dayjs().isAfter(dayjs(currentSession.tokenExpireAt))) {
-      return response.unauthorized()
-    }
-
-    const currentSessionToken = currentSession.token
-
-    if (!currentSessionToken) {
-      return response.unauthorized()
-    }
-
-    pb.authStore.save(currentSessionToken, null)
+    pb.authStore.save(pendingSession.token, null)
     await pb
       .collection('users')
       .authRefresh()
@@ -220,7 +231,7 @@ export const verify = forge
     if (type === 'app') {
       verified = await verifyAppOTP(pb, otp)
     } else if (type === 'email') {
-      verified = await verifyEmailOTP(pb, otp)
+      verified = await verifyEmailOTP(pb, tid, otp)
     }
 
     if (!verified) {
@@ -232,6 +243,7 @@ export const verify = forge
     const sanitizedUserData = removeSensitiveData(userData)
 
     await updateNullData(sanitizedUserData, pb)
+    consumePendingAuthSession(tid)
 
     return response.ok({
       session: pb.authStore.token

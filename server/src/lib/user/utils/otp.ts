@@ -2,7 +2,7 @@ import { decrypt } from '@functions/auth/encryption'
 import PocketBase from 'pocketbase'
 import speakeasy from 'speakeasy'
 
-import { currentSession } from '..'
+import { getPendingAuthSession } from './authFlowState'
 
 export const verifyAppOTP = async (
   pb: PocketBase,
@@ -34,15 +34,18 @@ export const verifyAppOTP = async (
 
 export const verifyEmailOTP = async (
   pb: PocketBase,
+  tid: string,
   otp: string
 ): Promise<boolean> => {
-  if (!currentSession.otpId) {
+  const session = getPendingAuthSession(tid)
+
+  if (!session?.otpId) {
     return false
   }
 
   const authData = await pb
     .collection('users')
-    .authWithOTP(currentSession.otpId, otp)
+    .authWithOTP(session.otpId, otp)
     .catch(() => null)
 
   if (!authData || !pb.authStore.isValid) {

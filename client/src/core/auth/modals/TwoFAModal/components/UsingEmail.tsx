@@ -49,7 +49,18 @@ function UsingEmail({
     setSendOtpLoading(true)
 
     try {
-      const res = await forgeAPI.user['2fa'].requestOTP.input({ email }).query()
+      const requestURL = new URL(forgeAPI.user['2fa'].requestOTP.endpoint)
+      requestURL.searchParams.set('email', email)
+      requestURL.searchParams.set('tid', tid.current)
+
+      const response = await fetch(requestURL.toString())
+      const payload = await response.json()
+
+      if (!response.ok || payload.state !== 'success') {
+        throw new Error('Failed to request OTP')
+      }
+
+      const res = payload.data as string
 
       tid.current = res
       setOtpSent(true)

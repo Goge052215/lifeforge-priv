@@ -3,15 +3,13 @@ import {
   connectToPocketBase,
   validateEnvironmentVariables
 } from '@functions/database/dbUtils'
-import dayjs from 'dayjs'
 import PocketBase from 'pocketbase'
-import { v4 } from 'uuid'
 import z from 'zod'
 
-import { currentSession } from '..'
 import forge from '../forge'
 import userSchemas from '../schema'
 import { removeSensitiveData, updateNullData } from '../utils/auth'
+import { createPendingAuthSession } from '../utils/authFlowState'
 
 export const validateOTP = forge
   .mutation({
@@ -96,13 +94,15 @@ export const login = forge
       const sanitizedUserData = removeSensitiveData(userData)
 
       if (sanitizedUserData.twoFAEnabled) {
-        currentSession.token = pb.authStore.token
-        currentSession.tokenExpireAt = dayjs().add(5, 'minutes').toISOString()
-        currentSession.tokenId = v4()
+        const tid = createPendingAuthSession({
+          token: pb.authStore.token,
+          email: userData.email,
+          userId: userData.id
+        })
 
         return response.ok({
           state: '2fa_required' as const,
-          tid: currentSession.tokenId
+          tid
         })
       }
 

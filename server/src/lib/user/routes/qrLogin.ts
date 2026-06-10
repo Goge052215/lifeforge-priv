@@ -17,7 +17,7 @@ interface PendingQRSession {
 
 const pendingQRSessions = new Map<string, PendingQRSession>()
 
-setInterval(() => {
+const cleanupPendingQRSessionsTimer = setInterval(() => {
   const now = dayjs()
 
   for (const [sessionId, session] of pendingQRSessions) {
@@ -26,6 +26,8 @@ setInterval(() => {
     }
   }
 }, 60 * 1000)
+
+cleanupPendingQRSessionsTimer.unref?.()
 
 export const registerQRSession = forge
   .mutation({
