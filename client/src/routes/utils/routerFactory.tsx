@@ -3,6 +3,7 @@ import type { ModuleCategory, RouteObject } from '@lifeforge/shared'
 import { LoadingScreen, NotFoundScreen } from '@lifeforge/ui'
 
 import Auth from '@/core/auth'
+import GoogleLinkCallbackPage from '@/core/auth/pages/GoogleLinkCallbackPage'
 
 import RootLayout from '../components/RootLayout'
 import RouteErrorScreen from '../components/RouteErrorScreen'
@@ -72,6 +73,10 @@ export async function createRouterConfig({
       children: [
         ...moduleRoutes,
         {
+          path: '/oauth/google/callback',
+          element: <GoogleLinkCallbackPage />
+        },
+        {
           path: '/auth/*',
           element: <DashboardRedirectHandler />
         },
@@ -100,6 +105,10 @@ export function createAuthRouterConfig(): RouteObject[] {
     {
       path: '/auth',
       element: <Auth />
+    },
+    {
+      path: '/oauth/google/callback',
+      element: <GoogleLinkCallbackPage />
     },
     {
       path: '*',

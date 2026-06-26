@@ -1,6 +1,8 @@
 import dayjs from 'dayjs'
 import { v4 } from 'uuid'
 
+import type { GoogleService } from './googleOAuth'
+
 interface PendingAuthSession {
   token: string
   email: string
@@ -10,7 +12,12 @@ interface PendingAuthSession {
 }
 
 interface PendingOAuthState {
-  codeVerifier: string
+  kind: 'login' | 'google-link'
+  codeVerifier?: string
+  provider?: string
+  redirectPath?: string
+  services?: GoogleService[]
+  userId?: string
   expiresAt: string
 }
 
@@ -120,10 +127,10 @@ export function consumePendingAuthSession(tid: string) {
 
 export function createPendingOAuthState(
   state: string,
-  codeVerifier: string
+  data: Omit<PendingOAuthState, 'expiresAt'>
 ) {
   pendingOAuthStates.set(state, {
-    codeVerifier,
+    ...data,
     expiresAt: newExpiry()
   })
 }

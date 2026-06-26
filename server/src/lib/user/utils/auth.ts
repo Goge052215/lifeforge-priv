@@ -21,10 +21,12 @@ export function removeSensitiveData(userData: Record<string, any>) {
     userData.APIKeysMasterPasswordHash
   )
   newUserData.twoFAEnabled = Boolean(userData.twoFASecret)
+  newUserData.googleConnected = Boolean(userData.googleConnection?.email)
   delete newUserData['masterPasswordHash']
   delete newUserData['journalMasterPasswordHash']
   delete newUserData['APIKeysMasterPasswordHash']
   delete newUserData['twoFASecret']
+  delete newUserData['googleRefreshToken']
 
   return newUserData as SchemaWithPB<
     Omit<
@@ -33,15 +35,18 @@ export function removeSensitiveData(userData: Record<string, any>) {
       | 'journalMasterPasswordHash'
       | 'APIKeysMasterPasswordHash'
       | 'twoFASecret'
+      | 'googleRefreshToken'
     > & {
       hasMasterPassword: boolean
       hasJournalMasterPassword: boolean
       hasAPIKeysMasterPassword: boolean
       twoFAEnabled: boolean
+      googleConnected: boolean
       masterPasswordHash?: string
       journalMasterPasswordHash?: string
       APIKeysMasterPasswordHash?: string
       twoFASecret?: string
+      googleRefreshToken?: string
     }
   >
 }

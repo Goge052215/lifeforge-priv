@@ -6,6 +6,25 @@ import {
   createPendingAuthSession,
   createPendingOAuthState
 } from '../utils/authFlowState'
+import {
+  buildGoogleAuthorizationURL,
+  type GoogleService,
+  isGoogleOAuthConfigured,
+  linkGoogleAccount,
+  parseGoogleServices
+} from '../utils/googleOAuth'
+
+const googleConnectionSchema = z.object({
+  email: z.string().email(),
+  emailVerified: z.boolean(),
+  expiresAt: z.string(),
+  linkedAt: z.string(),
+  name: z.string(),
+  picture: z.string(),
+  scopes: z.array(z.string()),
+  services: z.array(z.enum(['calendar', 'gmail', 'drive'])),
+  sub: z.string()
+})
 
 export const listProviders = forge
   .query({
@@ -61,7 +80,11 @@ export const getEndpoint = forge
       return response.badRequest('Invalid provider')
     }
 
-    createPendingOAuthState(endpoint.state, endpoint.codeVerifier)
+    createPendingOAuthState(endpoint.state, {
+      kind: 'login',
+      codeVerifier: endpoint.codeVerifier,
+      provider
+    })
 
     return response.ok(endpoint)
   })
@@ -104,7 +127,12 @@ export const verify = forge
 
       const pendingOAuthState = consumePendingOAuthState(state)
 
-      if (!provider || !pendingOAuthState) {
+      if (
+        !provider ||
+        !pendingOAuthState ||
+        pendingOAuthState.kind !== 'login' ||
+        !pendingOAuthState.codeVerifier
+      ) {
         return response.badRequest('Invalid login attempt')
       }
 
@@ -144,3 +172,151 @@ export const verify = forge
       }
     }
   )
+
+export const getGoogleLinkEndpoint = forge
+  .query({
+    description:
+      'Get Google authorization URL for linking Calendar, Gmail, and Drive',
+    encrypted: false,
+    input: {
+      query: z.object({
+        services: z.string().optional(),
+        redirectTo: z.string().optional()
+      })
+    },
+    output: {
+      OK: z.object({
+        authURL: z.string(),
+        enabled: z.boolean(),
+        services: z.array(z.enum(['calendar', 'gmail', 'drive'])),
+        state: z.string()
+      }),
+      BAD_REQUEST: z.string()
+    }
+  })
+  .callback(async ({ pb, req, query: { services, redirectTo }, response }) => {
+    if (!isGoogleOAuthConfigured()) {
+      return response.badRequest(
+        'Google OAuth is not configured on the server.'
+      )
+    }
+
+    const userId = pb.instance.authStore.record?.id
+
+    if (!userId) {
+      return response.badRequest('You must be signed in to link Google.')
+    }
+
+    const googleServices = parseGoogleServices(services)
+    const state = crypto.randomUUID()
+    const redirectPath = redirectTo?.trim() || '/account-settings'
+    const redirectUri = new URL('/oauth/google/callback', req.headers.origin)
+
+    redirectUri.searchParams.set('redirect', redirectPath)
+
+    createPendingOAuthState(state, {
+      kind: 'google-link',
+      redirectPath,
+      services: googleServices,
+      userId
+    })
+
+    return response.ok({
+      authURL: buildGoogleAuthorizationURL({
+        redirectUri: redirectUri.toString(),
+        services: googleServices,
+        state
+      }),
+      enabled: true,
+      services: googleServices,
+      state
+    })
+  })
+
+export const verifyGoogleLink = forge
+  .mutation({
+    description:
+      'Verify Google authorization callback and link Calendar, Gmail, and Drive',
+    noAuth: true,
+    input: {
+      body: z.object({
+        code: z.string(),
+        state: z.string()
+      })
+    },
+    output: {
+      OK: z.object({
+        googleConnection: googleConnectionSchema
+      }),
+      BAD_REQUEST: z.string(),
+      UNAUTHORIZED: true
+    }
+  })
+  .callback(async ({ req, body: { code, state }, response }) => {
+    const pendingOAuthState = consumePendingOAuthState(state)
+    const defaultGoogleServices: GoogleService[] = [
+      'calendar',
+      'gmail',
+      'drive'
+    ]
+
+    if (
+      !pendingOAuthState ||
+      pendingOAuthState.kind !== 'google-link' ||
+      !pendingOAuthState.userId
+    ) {
+      return response.badRequest('Invalid Google linking attempt.')
+    }
+
+    try {
+      const redirectUri = new URL('/oauth/google/callback', req.headers.origin)
+
+      if (pendingOAuthState.redirectPath) {
+        redirectUri.searchParams.set('redirect', pendingOAuthState.redirectPath)
+      }
+
+      const googleConnection = await linkGoogleAccount({
+        code,
+        redirectUri: redirectUri.toString(),
+        services: pendingOAuthState.services ?? defaultGoogleServices,
+        userId: pendingOAuthState.userId
+      })
+
+      return response.ok({
+        googleConnection
+      })
+    } catch (error) {
+      return response.badRequest(
+        error instanceof Error
+          ? error.message
+          : 'Failed to link Google account.'
+      )
+    }
+  })
+
+export const unlinkGoogleLink = forge
+  .mutation({
+    description: 'Disconnect the linked Google account',
+    input: {},
+    output: {
+      NO_CONTENT: true
+    }
+  })
+  .callback(async ({ pb, response }) => {
+    const userId = pb.instance.authStore.record?.id
+
+    if (!userId) {
+      return response.noContent()
+    }
+
+    await pb.update
+      .collection('users')
+      .id(userId)
+      .data({
+        googleConnection: null,
+        googleRefreshToken: ''
+      })
+      .execute()
+
+    return response.noContent()
+  })

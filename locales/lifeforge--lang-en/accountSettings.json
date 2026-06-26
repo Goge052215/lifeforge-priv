@@ -9,7 +9,8 @@
       "email": "Email Address",
       "password": "Password",
       "dateOfBirth": "Date of Birth",
-      "twoFA": "Two-Factor Authentication"
+      "twoFA": "Two-Factor Authentication",
+      "googleServices": "Google Services"
     },
     "desc": {
       "profilePicture": "Upload a profile picture to personalize your account.",
@@ -18,7 +19,8 @@
       "email": "The email address you use to log in to your account.",
       "password": "Set a strong password to protect your account.",
       "dateOfBirth": "Set your date of birth, and we'll give you a surprise!",
-      "twoFA": "Enable two-factor authentication when logging into the system."
+      "twoFA": "Enable two-factor authentication when logging into the system.",
+      "googleServices": "Link Google Calendar, Gmail, and Drive to your account."
     },
     "empty": "Not Set"
   },
@@ -49,7 +51,9 @@
     }
   },
   "buttons": {
-    "changePassword": "Change Password"
+    "changePassword": "Change Password",
+    "linkGoogle": "Link Google",
+    "unlinkGoogle": "Unlink Google"
   },
   "inputs": {
     "dateOfBirth": "Date of Birth",
@@ -73,10 +77,15 @@
     "twoFA": {
       "enableSuccess": "Two-factor authentication enabled successfully.",
       "disableSuccess": "Two-factor authentication disabled successfully."
-    }
+    },
+    "googleLinkFailed": "Failed to start the Google linking flow.",
+    "googleUnlinked": "Google services disconnected successfully.",
+    "googleUnlinkFailed": "Failed to disconnect Google services."
   },
   "misc": {
     "enabled": "Enabled",
-    "disabled": "Disabled"
+    "disabled": "Disabled",
+    "connected": "Connected",
+    "disconnected": "Not Connected"
   }
 }

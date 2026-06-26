@@ -320,6 +320,10 @@ export const contract = {
               },
               "twoFAEnabled": {
                 "type": "boolean"
+              },
+              "googleConnection": {},
+              "googleConnected": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -350,7 +354,9 @@ export const contract = {
               "hasMasterPassword",
               "hasJournalMasterPassword",
               "hasAPIKeysMasterPassword",
-              "twoFAEnabled"
+              "twoFAEnabled",
+              "googleConnection",
+              "googleConnected"
             ],
             "additionalProperties": false
           },
@@ -578,11 +584,15 @@ export const contract = {
               },
               "code": {
                 "type": "string"
+              },
+              "state": {
+                "type": "string"
               }
             },
             "required": [
               "provider",
-              "code"
+              "code",
+              "state"
             ],
             "additionalProperties": false
           }
@@ -618,6 +628,181 @@ export const contract = {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "string"
           }
+        }
+      },
+      "getGoogleLinkEndpoint": {
+        "method": "get",
+        "description": "Get Google authorization URL for linking Calendar, Gmail, and Drive",
+        "noAuth": false,
+        "encrypted": false,
+        "isDownloadable": false,
+        "media": null,
+        "input": {
+          "query": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "services": {
+                "type": "string"
+              },
+              "redirectTo": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "authURL": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "services": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "calendar",
+                    "gmail",
+                    "drive"
+                  ]
+                }
+              },
+              "state": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "authURL",
+              "enabled",
+              "services",
+              "state"
+            ],
+            "additionalProperties": false
+          },
+          "BAD_REQUEST": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "string"
+          }
+        }
+      },
+      "verifyGoogleLink": {
+        "method": "post",
+        "description": "Verify Google authorization callback and link Calendar, Gmail, and Drive",
+        "noAuth": true,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {
+          "body": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "state"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "googleConnection": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "emailVerified": {
+                    "type": "boolean"
+                  },
+                  "expiresAt": {
+                    "type": "string"
+                  },
+                  "linkedAt": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "picture": {
+                    "type": "string"
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "services": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "calendar",
+                        "gmail",
+                        "drive"
+                      ]
+                    }
+                  },
+                  "sub": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "emailVerified",
+                  "expiresAt",
+                  "linkedAt",
+                  "name",
+                  "picture",
+                  "scopes",
+                  "services",
+                  "sub"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "googleConnection"
+            ],
+            "additionalProperties": false
+          },
+          "BAD_REQUEST": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "string"
+          },
+          "UNAUTHORIZED": true
+        }
+      },
+      "unlinkGoogleLink": {
+        "method": "post",
+        "description": "Disconnect the linked Google account",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {},
+        "output": {
+          "NO_CONTENT": true
         }
       }
     },

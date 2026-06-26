@@ -162,13 +162,15 @@ export const getUserData = forge
         .omit({
           masterPasswordHash: true,
           APIKeysMasterPasswordHash: true,
-          twoFASecret: true
+          twoFASecret: true,
+          googleRefreshToken: true
         })
         .extend({
           hasMasterPassword: z.boolean(),
           hasJournalMasterPassword: z.boolean(),
           hasAPIKeysMasterPassword: z.boolean(),
-          twoFAEnabled: z.boolean()
+          twoFAEnabled: z.boolean(),
+          googleConnected: z.boolean()
         }),
       NOT_FOUND: true
     }

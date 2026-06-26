@@ -1,6 +1,7 @@
 import { ModuleHeader, Stack } from '@lifeforge/ui'
 
 import AvatarColumn from './components/AvatarColumn'
+import GoogleServicesColumn from './components/GoogleServicesColumn'
 import OrdinaryColumn from './components/OrdinaryColumn'
 import PasswordColumn from './components/PasswordColumn'
 import QRLoginColumn from './components/QRLoginColumn'
@@ -37,6 +38,7 @@ function AccountSettings() {
           type="datetime"
         />
         <PasswordColumn />
+        <GoogleServicesColumn />
         <TwoFAColumn />
         <QRLoginColumn />
       </Stack>
