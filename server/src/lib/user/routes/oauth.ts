@@ -252,6 +252,25 @@ export const verifyGoogleLink = forge
     }
   })
   .callback(async ({ req, body: { code, state }, response }) => {
+    // #region debug-point B:verify-entry
+    fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: process.env.DEBUG_SESSION_ID || 'google-link-hang',
+        runId: 'pre-fix',
+        hypothesisId: 'B',
+        location: 'oauth.ts:255',
+        msg: '[DEBUG] verifyGoogleLink handler entered',
+        data: {
+          origin: req.headers.origin,
+          hasCode: Boolean(code),
+          state
+        },
+        ts: Date.now()
+      })
+    }).catch(() => {})
+    // #endregion
     const pendingOAuthState = consumePendingOAuthState(state)
     const defaultGoogleServices: GoogleService[] = [
       'calendar',
@@ -277,11 +296,47 @@ export const verifyGoogleLink = forge
         userId: pendingOAuthState.userId
       })
 
+      // #region debug-point B:verify-finished
+      fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: process.env.DEBUG_SESSION_ID || 'google-link-hang',
+          runId: 'pre-fix',
+          hypothesisId: 'B',
+          location: 'oauth.ts:280',
+          msg: '[DEBUG] verifyGoogleLink handler completed successfully',
+          data: {
+            email: googleConnection.email,
+            redirectPath: pendingOAuthState.redirectPath || '/account-settings'
+          },
+          ts: Date.now()
+        })
+      }).catch(() => {})
+      // #endregion
+
       return response.ok({
         googleConnection,
         redirectPath: pendingOAuthState.redirectPath || '/account-settings'
       })
     } catch (error) {
+      // #region debug-point E:verify-error
+      fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: process.env.DEBUG_SESSION_ID || 'google-link-hang',
+          runId: 'pre-fix',
+          hypothesisId: 'E',
+          location: 'oauth.ts:289',
+          msg: '[DEBUG] verifyGoogleLink handler failed',
+          data: {
+            error: error instanceof Error ? error.message : 'unknown server error'
+          },
+          ts: Date.now()
+        })
+      }).catch(() => {})
+      // #endregion
       return response.badRequest(
         error instanceof Error
           ? error.message
