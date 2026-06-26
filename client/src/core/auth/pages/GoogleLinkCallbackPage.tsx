@@ -19,12 +19,12 @@ function GoogleLinkCallbackPage() {
 
     const code = searchParams.get('code')
     const state = searchParams.get('state')
-    const redirectTo = searchParams.get('redirect') || '/account-settings'
+    const fallbackRedirect = '/account-settings'
 
     if (!code || !state) {
       handledRef.current = true
       toast.error('Invalid Google linking attempt.')
-      navigate(redirectTo, { replace: true })
+      navigate(fallbackRedirect, { replace: true })
       return
     }
 
@@ -42,12 +42,12 @@ function GoogleLinkCallbackPage() {
         code,
         state
       })
-      .then(async () => {
+      .then(async data => {
         const userData = await forgeAPI.user.auth.getUserData.query()
 
         setUserData(userData)
         toast.success('Google Calendar, Gmail, and Drive are now linked.')
-        navigate(redirectTo, { replace: true })
+        navigate(data.redirectPath || fallbackRedirect, { replace: true })
       })
       .catch((error: unknown) => {
         const message =
@@ -56,7 +56,7 @@ function GoogleLinkCallbackPage() {
             : 'Failed to link Google services.'
 
         toast.error(message)
-        navigate(redirectTo, { replace: true })
+        navigate(fallbackRedirect, { replace: true })
       })
   }, [auth, authLoading, navigate, searchParams, setUserData])
 

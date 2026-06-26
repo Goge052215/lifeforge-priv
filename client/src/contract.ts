@@ -779,10 +779,14 @@ export const contract = {
                   "sub"
                 ],
                 "additionalProperties": false
+              },
+              "redirectPath": {
+                "type": "string"
               }
             },
             "required": [
-              "googleConnection"
+              "googleConnection",
+              "redirectPath"
             ],
             "additionalProperties": false
           },

@@ -212,8 +212,6 @@ export const getGoogleLinkEndpoint = forge
     const redirectPath = redirectTo?.trim() || '/account-settings'
     const redirectUri = new URL('/oauth/google/callback', req.headers.origin)
 
-    redirectUri.searchParams.set('redirect', redirectPath)
-
     createPendingOAuthState(state, {
       kind: 'google-link',
       redirectPath,
@@ -246,7 +244,8 @@ export const verifyGoogleLink = forge
     },
     output: {
       OK: z.object({
-        googleConnection: googleConnectionSchema
+        googleConnection: googleConnectionSchema,
+        redirectPath: z.string()
       }),
       BAD_REQUEST: z.string(),
       UNAUTHORIZED: true
@@ -271,10 +270,6 @@ export const verifyGoogleLink = forge
     try {
       const redirectUri = new URL('/oauth/google/callback', req.headers.origin)
 
-      if (pendingOAuthState.redirectPath) {
-        redirectUri.searchParams.set('redirect', pendingOAuthState.redirectPath)
-      }
-
       const googleConnection = await linkGoogleAccount({
         code,
         redirectUri: redirectUri.toString(),
@@ -283,7 +278,8 @@ export const verifyGoogleLink = forge
       })
 
       return response.ok({
-        googleConnection
+        googleConnection,
+        redirectPath: pendingOAuthState.redirectPath || '/account-settings'
       })
     } catch (error) {
       return response.badRequest(
