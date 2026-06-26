@@ -176,11 +176,13 @@ export const getUserData = forge
     }
   })
   .callback(async ({ pb, response }) => {
-    const userData = pb.instance.authStore.record
+    const authRecord = pb.instance.authStore.record
 
-    if (!userData) {
+    if (!authRecord) {
       return response.notFound()
     }
+
+    const userData = await pb.instance.collection('users').getOne(authRecord.id)
 
     const sanitizedUserData = removeSensitiveData(userData)
 

@@ -175,9 +175,6 @@ function UserPersonalizationProvider({
   async function changeDashboardLayout(layout: IDashboardLayout) {
     setDashboardLayout(layout)
     pendingDashboardLayoutRef.current = layout
-    // #region debug-point A:dashboard-layout-sync-request
-    fetch('http://127.0.0.1:7778/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'dashboard-layout-persistence', runId: 'pre-fix', hypothesisId: 'A', location: 'UserPersonalizationProvider.tsx:109', msg: '[DEBUG] requesting dashboard layout sync', data: { breakpoints: Object.keys(layout || {}), counts: Object.fromEntries(Object.entries(layout || {}).map(([key, value]) => [key, Array.isArray(value) ? value.length : -1])) }, ts: Date.now() }) }).catch(() => {})
-    // #endregion
     if (
       authLoading ||
       !auth ||
@@ -204,9 +201,6 @@ function UserPersonalizationProvider({
   }
 
   useEffect(() => {
-    // #region debug-point B:user-data-theme-hydration
-    fetch((globalThis as typeof globalThis & { DEBUG_SERVER_URL?: string }).DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: (globalThis as typeof globalThis & { DEBUG_SESSION_ID?: string }).DEBUG_SESSION_ID || 'theme-persistence', runId: 'pre-fix', hypothesisId: 'B', location: 'UserPersonalizationProvider.tsx:112', msg: '[DEBUG] hydrating personalization from user data', data: { hasUserData: Boolean(userData), theme: userData?.theme, color: userData?.color, bgTemp: userData?.bgTemp }, ts: Date.now() }) }).catch(() => {})
-    // #endregion
     if (!userData) return
 
     if (isThemeMode(userData?.theme)) {
@@ -253,10 +247,6 @@ function UserPersonalizationProvider({
       const hydratedDashboardLayout = normalizeDashboardLayout(
         userData.dashboardLayout
       )
-
-      // #region debug-point C:dashboard-layout-hydration
-      fetch('http://127.0.0.1:7778/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'dashboard-layout-persistence', runId: 'pre-fix', hypothesisId: 'C', location: 'UserPersonalizationProvider.tsx:169', msg: '[DEBUG] hydrating dashboard layout from user data', data: { breakpoints: Object.keys(hydratedDashboardLayout || {}), counts: Object.fromEntries(Object.entries(hydratedDashboardLayout || {}).map(([key, value]) => [key, Array.isArray(value) ? value.length : -1])) }, ts: Date.now() }) }).catch(() => {})
-      // #endregion
 
       if (!pendingDashboardLayoutRef.current) {
         setDashboardLayout(hydratedDashboardLayout)
