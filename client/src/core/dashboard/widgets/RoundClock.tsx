@@ -32,18 +32,20 @@ function RoundClockWidget({
   const showMeta = h >= 2
   const useMinuteMarks = w >= 3 && h >= 2
   const showSecondHand = h >= 3
-  const clockSize = useMemo(() => {
-    const availableWidth = Math.max((width || 220) - 28, 96)
-    const reservedHeight = showMeta ? (compact ? 64 : 80) : 28
+  const dialPadding = compact ? 8 : 12
+  const dialSize = useMemo(() => {
+    const availableWidth = Math.max((width || 220) - 24, 96)
+    const reservedHeight = showMeta ? (compact ? 92 : 108) : 28
     const availableHeight = Math.max((height || 220) - reservedHeight, 96)
 
     return Math.max(
       96,
-      Math.min(availableWidth, availableHeight, compact ? 180 : 240)
+      Math.min(availableWidth, availableHeight, compact ? 168 : 216)
     )
   }, [compact, height, showMeta, width])
+  const faceSize = Math.max(72, dialSize - dialPadding * 2)
   const accentColor = useMemo(
-    () => tinycolor(derivedThemeColor).brighten(3).toHexString(),
+    () => tinycolor(derivedThemeColor).brighten(6).desaturate(8).toHexString(),
     [derivedThemeColor]
   )
   const accentGlow = useMemo(
@@ -82,30 +84,31 @@ function RoundClockWidget({
         <div
           className="round-clock-widget__dial"
           style={{
-            height: `${clockSize}px`,
-            width: `${clockSize}px`
+            height: `${dialSize}px`,
+            padding: `${dialPadding}px`,
+            width: `${dialSize}px`
           }}
         >
           <ReactClock
             className="round-clock-widget__clock"
-            hourHandLength={50}
-            hourHandOppositeLength={12}
-            hourHandWidth={compact ? 4 : 5}
-            hourMarksLength={compact ? 8 : 10}
-            hourMarksWidth={compact ? 2 : 3}
+            hourHandLength={48}
+            hourHandOppositeLength={10}
+            hourHandWidth={compact ? 3 : 4}
+            hourMarksLength={compact ? 7 : 9}
+            hourMarksWidth={compact ? 1.5 : 2}
             locale={language}
-            minuteHandLength={72}
-            minuteHandOppositeLength={16}
-            minuteHandWidth={compact ? 2 : 3}
-            minuteMarksLength={4}
+            minuteHandLength={70}
+            minuteHandOppositeLength={14}
+            minuteHandWidth={compact ? 2 : 2.5}
+            minuteMarksLength={3}
             minuteMarksWidth={1}
             renderMinuteMarks={useMinuteMarks}
             renderNumbers={false}
             renderSecondHand={showSecondHand}
-            secondHandLength={82}
+            secondHandLength={80}
             secondHandOppositeLength={18}
             secondHandWidth={1}
-            size={clockSize}
+            size={faceSize}
             value={value}
           />
         </div>

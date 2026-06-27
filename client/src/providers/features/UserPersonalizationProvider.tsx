@@ -85,6 +85,13 @@ function isThemeMode(value: unknown): value is 'light' | 'dark' | 'system' {
   return value === 'light' || value === 'dark' || value === 'system'
 }
 
+function isAuthFailureMessage(message: string) {
+  return (
+    message === 'Invalid authorization credentials' ||
+    message === 'Authorization token is required'
+  )
+}
+
 const UserPersonalizationContext = createContext<{
   changeFontFamily: (font: string) => Promise<void>
   changeFontScale: (scale: number) => Promise<void>
@@ -102,7 +109,8 @@ const UserPersonalizationContext = createContext<{
 
 async function syncUserData(
   data: Record<string, unknown>,
-  setUserData: React.Dispatch<React.SetStateAction<any>>
+  setUserData: React.Dispatch<React.SetStateAction<any>>,
+  onAuthFailure?: () => void
 ): Promise<boolean> {
   try {
     await forgeAPI.user.personalization.updatePersonalization.mutate({
@@ -117,7 +125,13 @@ async function syncUserData(
       })
     }
     return true
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && isAuthFailureMessage(error.message)) {
+      onAuthFailure?.()
+      toast.error('Your session expired. Sign in again to save personalization.')
+      return false
+    }
+
     toast.error('Failed to update personalization settings')
     return false
   }
@@ -128,7 +142,7 @@ function UserPersonalizationProvider({
 }: {
   children: React.ReactNode
 }) {
-  const { auth, authLoading, userData, setUserData } = useAuth()
+  const { auth, authLoading, userData, setUserData, logout } = useAuth()
 
   const {
     setFontFamily,
@@ -149,37 +163,56 @@ function UserPersonalizationProvider({
   const pendingCalendarLayoutRef = useRef<IDashboardLayout | null>(null)
   const pendingIntegrationsLayoutRef = useRef<IDashboardLayout | null>(null)
 
+  function handlePersistenceAuthFailure() {
+    pendingDashboardLayoutRef.current = null
+    pendingCalendarLayoutRef.current = null
+    pendingIntegrationsLayoutRef.current = null
+    logout()
+  }
+
   async function changeFontFamily(font: string) {
-    await syncUserData({ fontFamily: font }, setUserData)
+    await syncUserData({ fontFamily: font }, setUserData, handlePersistenceAuthFailure)
   }
 
   async function changeFontScale(scale: number) {
-    await syncUserData({ fontScale: scale }, setUserData)
+    await syncUserData({ fontScale: scale }, setUserData, handlePersistenceAuthFailure)
   }
 
   async function changeTheme(theme: 'light' | 'dark' | 'system') {
     setTheme(theme)
-    await syncUserData({ theme }, setUserData)
+    await syncUserData({ theme }, setUserData, handlePersistenceAuthFailure)
   }
 
   async function changeThemeColor(color: string) {
     setRawThemeColor(color)
-    await syncUserData({ color: color.replace('theme-', '') }, setUserData)
+    await syncUserData(
+      { color: color.replace('theme-', '') },
+      setUserData,
+      handlePersistenceAuthFailure
+    )
   }
 
   async function changeBgTemp(color: string) {
     setBgTemp(color)
-    await syncUserData({ bgTemp: color.replace('bg-', '') }, setUserData)
+    await syncUserData(
+      { bgTemp: color.replace('bg-', '') },
+      setUserData,
+      handlePersistenceAuthFailure
+    )
   }
 
   async function changeBackdropFilters(filters: IBackdropFilters) {
     setBackdropFilters(filters)
-    await syncUserData({ backdropFilters: filters }, setUserData)
+    await syncUserData(
+      { backdropFilters: filters },
+      setUserData,
+      handlePersistenceAuthFailure
+    )
   }
 
   async function changeLanguage(language: string) {
     setLanguage(language)
-    await syncUserData({ language }, setUserData)
+    await syncUserData({ language }, setUserData, handlePersistenceAuthFailure)
   }
 
   async function changeDashboardLayout(layout: IDashboardLayout) {
@@ -195,7 +228,13 @@ function UserPersonalizationProvider({
       return
     }
 
-    if (await syncUserData({ dashboardLayout: layout }, setUserData)) {
+    if (
+      await syncUserData(
+        { dashboardLayout: layout },
+        setUserData,
+        handlePersistenceAuthFailure
+      )
+    ) {
       pendingDashboardLayoutRef.current = null
     }
   }
@@ -213,7 +252,13 @@ function UserPersonalizationProvider({
       return
     }
 
-    if (await syncUserData({ calendarLayout: layout }, setUserData)) {
+    if (
+      await syncUserData(
+        { calendarLayout: layout },
+        setUserData,
+        handlePersistenceAuthFailure
+      )
+    ) {
       pendingCalendarLayoutRef.current = null
     }
   }
@@ -231,19 +276,29 @@ function UserPersonalizationProvider({
       return
     }
 
-    if (await syncUserData({ integrationsLayout: layout }, setUserData)) {
+    if (
+      await syncUserData(
+        { integrationsLayout: layout },
+        setUserData,
+        handlePersistenceAuthFailure
+      )
+    ) {
       pendingIntegrationsLayoutRef.current = null
     }
   }
 
   async function changeBorderRadiusMultiplier(multiplier: number) {
     setBorderRadiusMultiplier(multiplier)
-    await syncUserData({ borderRadiusMultiplier: multiplier }, setUserData)
+    await syncUserData(
+      { borderRadiusMultiplier: multiplier },
+      setUserData,
+      handlePersistenceAuthFailure
+    )
   }
 
   async function changeBordered(bordered: boolean) {
     setBordered(bordered)
-    await syncUserData({ bordered }, setUserData)
+    await syncUserData({ bordered }, setUserData, handlePersistenceAuthFailure)
   }
 
   useEffect(() => {
@@ -348,7 +403,11 @@ function UserPersonalizationProvider({
 
     const pendingLayout = pendingDashboardLayoutRef.current
 
-    void syncUserData({ dashboardLayout: pendingLayout }, setUserData).then(
+    void syncUserData(
+      { dashboardLayout: pendingLayout },
+      setUserData,
+      handlePersistenceAuthFailure
+    ).then(
       success => {
         if (success && pendingDashboardLayoutRef.current === pendingLayout) {
           pendingDashboardLayoutRef.current = null
@@ -371,7 +430,11 @@ function UserPersonalizationProvider({
 
     const pendingLayout = pendingCalendarLayoutRef.current
 
-    void syncUserData({ calendarLayout: pendingLayout }, setUserData).then(
+    void syncUserData(
+      { calendarLayout: pendingLayout },
+      setUserData,
+      handlePersistenceAuthFailure
+    ).then(
       success => {
         if (success && pendingCalendarLayoutRef.current === pendingLayout) {
           pendingCalendarLayoutRef.current = null
@@ -394,7 +457,11 @@ function UserPersonalizationProvider({
 
     const pendingLayout = pendingIntegrationsLayoutRef.current
 
-    void syncUserData({ integrationsLayout: pendingLayout }, setUserData).then(
+    void syncUserData(
+      { integrationsLayout: pendingLayout },
+      setUserData,
+      handlePersistenceAuthFailure
+    ).then(
       success => {
         if (
           success &&
