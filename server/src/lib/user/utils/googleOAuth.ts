@@ -311,12 +311,14 @@ function normalizeGoogleCalendarEvent(
 }
 
 export async function listGoogleCalendarEvents({
-  userId,
+  googleConnection,
+  encryptedRefreshToken,
   timeMin,
   timeMax,
   maxResults = 25
 }: {
-  userId: string
+  googleConnection?: GoogleConnectionData | null
+  encryptedRefreshToken?: string | null
   timeMin?: string
   timeMax?: string
   maxResults?: number
@@ -325,14 +327,7 @@ export async function listGoogleCalendarEvents({
   calendarEnabled: boolean
   events: GoogleCalendarEventData[]
 }> {
-  const superPBInstance = await connectToPocketBase(validateEnvironmentVariables())
-  const userRecord = await superPBInstance.collection('users').getOne(userId)
-  const googleConnection = userRecord.googleConnection as
-    | GoogleConnectionData
-    | null
-    | undefined
-
-  if (!googleConnection?.email || !userRecord.googleRefreshToken) {
+  if (!googleConnection?.email || !encryptedRefreshToken) {
     return {
       connected: false,
       calendarEnabled: false,
@@ -352,7 +347,7 @@ export async function listGoogleCalendarEvents({
     throw new Error('MASTER_KEY is required to access Google Calendar.')
   }
 
-  const refreshToken = decrypt2(userRecord.googleRefreshToken, process.env.MASTER_KEY)
+  const refreshToken = decrypt2(encryptedRefreshToken, process.env.MASTER_KEY)
   const tokenResponse = await refreshGoogleAccessToken(refreshToken)
   const searchParams = new URLSearchParams({
     maxResults: String(Math.min(100, Math.max(1, maxResults))),

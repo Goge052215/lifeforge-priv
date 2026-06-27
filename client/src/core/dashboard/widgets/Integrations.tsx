@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 
 import { useAuth, usePromiseLoading } from '@lifeforge/shared'
@@ -17,6 +18,7 @@ function IntegrationsWidget({
   dimension: { w: number; h: number }
 }) {
   const { setUserData, userData } = useAuth()
+  const queryClient = useQueryClient()
   const oauthAPI = forgeAPI.user.oauth as typeof forgeAPI.user.oauth & {
     getGoogleLinkEndpoint: {
       query: (input: {
@@ -51,6 +53,12 @@ function IntegrationsWidget({
   async function handleUnlinkGoogleServices() {
     try {
       await oauthAPI.unlinkGoogleLink.mutate(undefined)
+      await queryClient.cancelQueries({
+        queryKey: ['user', 'calendar', 'listPrimaryEvents']
+      })
+      queryClient.removeQueries({
+        queryKey: ['user', 'calendar', 'listPrimaryEvents']
+      })
 
       setUserData(currentUserData =>
         currentUserData

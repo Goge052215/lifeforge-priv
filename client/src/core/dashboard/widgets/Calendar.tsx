@@ -44,6 +44,7 @@ function CalendarWidget({
   dimension: { w: number; h: number }
 }) {
   const { userData } = useAuth()
+  const googleConnected = Boolean(userData?.googleConnected)
   const now = dayjs()
   const monthWindow = useMemo(() => getMonthWindow(now), [now])
   const calendarAPI = forgeAPI.user as typeof forgeAPI.user & {
@@ -67,15 +68,21 @@ function CalendarWidget({
         maxResults: 100
       })
       .queryOptions({
-        enabled: Boolean(userData)
+        enabled: googleConnected
       }) as never
   )
+  const calendarEnabled = googleConnected && Boolean(calendarQuery.data?.calendarEnabled)
+  const eventCount = googleConnected && calendarEnabled ? (calendarQuery.data?.events ?? []).length : 0
 
   const visibleEvents = useMemo(() => {
     const maxVisibleEvents = dimension.h >= 4 ? 4 : dimension.h >= 3 ? 3 : 2
 
+    if (!googleConnected || !calendarEnabled) {
+      return []
+    }
+
     return (calendarQuery.data?.events ?? []).slice(0, maxVisibleEvents)
-  }, [calendarQuery.data?.events, dimension.h])
+  }, [calendarEnabled, calendarQuery.data?.events, dimension.h, googleConnected])
 
   return (
     <Card gap="md" height="100%">
@@ -89,17 +96,17 @@ function CalendarWidget({
           </Text>
         </Stack>
         <Text color="muted" size="sm">
-          {(calendarQuery.data?.events ?? []).length} events
+          {eventCount} events
         </Text>
       </Flex>
 
-      {calendarQuery.isLoading ? (
+      {!googleConnected ? (
+        <Text color="muted">Link Google services to use Calendar.</Text>
+      ) : calendarQuery.isLoading ? (
         <Text color="muted">Loading Google Calendar...</Text>
       ) : calendarQuery.error instanceof Error ? (
-        <Text color="dangerous">{calendarQuery.error.message}</Text>
-      ) : !(calendarQuery.data?.connected ?? Boolean(userData?.googleConnected)) ? (
-        <Text color="muted">Link Google services to use Calendar.</Text>
-      ) : !calendarQuery.data?.calendarEnabled ? (
+        <Text color="dangerous">Unable to load Google Calendar right now.</Text>
+      ) : !calendarEnabled ? (
         <Text color="muted">
           Google is linked, but Calendar scope is not available.
         </Text>

@@ -23,7 +23,7 @@ export const listPrimaryEvents = forge
       query: z.object({
         timeMin: z.string().optional(),
         timeMax: z.string().optional(),
-        maxResults: z.number().min(1).max(100).optional()
+        maxResults: z.coerce.number().min(1).max(100).optional()
       })
     },
     output: {
@@ -37,26 +37,26 @@ export const listPrimaryEvents = forge
     }
   })
   .callback(async ({ pb, query: { timeMin, timeMax, maxResults }, response }) => {
-    const userId = pb.instance.authStore.record?.id
+    const userRecord = pb.instance.authStore.record
 
-    if (!userId) {
+    if (!userRecord?.id) {
       return response.unauthorized()
     }
 
     try {
       const result = await listGoogleCalendarEvents({
-        userId,
+        googleConnection: (userRecord.googleConnection as never) ?? null,
+        encryptedRefreshToken:
+          typeof userRecord.googleRefreshToken === 'string'
+            ? userRecord.googleRefreshToken
+            : null,
         timeMin,
         timeMax,
         maxResults
       })
 
       return response.ok(result)
-    } catch (error) {
-      return response.badRequest(
-        error instanceof Error
-          ? error.message
-          : 'Failed to retrieve Google Calendar events.'
-      )
+    } catch {
+      return response.badRequest('Unable to retrieve Google Calendar events.')
     }
   })
