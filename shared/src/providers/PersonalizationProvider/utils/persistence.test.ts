@@ -33,7 +33,33 @@ describe('personalization persistence', () => {
         rawThemeColor: 'theme-lime',
         bgTemp: 'bg-neutral',
         bgImage: 'https://example.com/bg.webp',
-        language: 'en'
+        language: 'en',
+        calendarLayout: {
+          lg: [
+            {
+              i: 'month',
+              x: 0,
+              y: 0,
+              w: 4,
+              h: 4,
+              minW: 2,
+              minH: 2
+            }
+          ]
+        },
+        integrationsLayout: {
+          lg: [
+            {
+              i: 'google',
+              x: 0,
+              y: 0,
+              w: 4,
+              h: 3,
+              minW: 2,
+              minH: 2
+            }
+          ]
+        }
       },
       123
     )
@@ -44,6 +70,32 @@ describe('personalization persistence', () => {
       bgTemp: 'bg-neutral',
       bgImage: 'https://example.com/bg.webp',
       language: 'en',
+      calendarLayout: {
+        lg: [
+          {
+            i: 'month',
+            x: 0,
+            y: 0,
+            w: 4,
+            h: 4,
+            minW: 2,
+            minH: 2
+          }
+        ]
+      },
+      integrationsLayout: {
+        lg: [
+          {
+            i: 'google',
+            x: 0,
+            y: 0,
+            w: 4,
+            h: 3,
+            minW: 2,
+            minH: 2
+          }
+        ]
+      },
       updatedAt: 123
     })
   })

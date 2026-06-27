@@ -304,6 +304,8 @@ export const updatePersonalization = forge
           borderRadiusMultiplier: z.number().optional(),
           bordered: z.boolean().optional(),
           dashboardLayout: z.record(z.string(), z.any()).optional(),
+          calendarLayout: z.record(z.string(), z.any()).optional(),
+          integrationsLayout: z.record(z.string(), z.any()).optional(),
           backdropFilters: z.record(z.string(), z.any()).optional()
         })
       })
@@ -330,11 +332,15 @@ export const updatePersonalization = forge
       'borderRadiusMultiplier',
       'bordered',
       'dashboardLayout',
+      'calendarLayout',
+      'integrationsLayout',
       'backdropFilters'
     ]) {
       if (data[item as keyof typeof data] !== undefined) {
         toBeUpdated[item] =
-          item === 'dashboardLayout'
+          item === 'dashboardLayout' ||
+          item === 'calendarLayout' ||
+          item === 'integrationsLayout'
             ? serializeDashboardLayout(data[item as keyof typeof data])
             : data[item as keyof typeof data]
       }

@@ -37,6 +37,8 @@ interface IPersonalizationData {
   bgImage: string
   language: string
   dashboardLayout: IDashboardLayout
+  calendarLayout: IDashboardLayout
+  integrationsLayout: IDashboardLayout
 
   setFontFamily: React.Dispatch<React.SetStateAction<string>>
   setFontScale: React.Dispatch<React.SetStateAction<number>>
@@ -49,6 +51,8 @@ interface IPersonalizationData {
   setBackdropFilters: React.Dispatch<React.SetStateAction<IBackdropFilters>>
   setLanguage: React.Dispatch<React.SetStateAction<string>>
   setDashboardLayout: React.Dispatch<React.SetStateAction<IDashboardLayout>>
+  setCalendarLayout: React.Dispatch<React.SetStateAction<IDashboardLayout>>
+  setIntegrationsLayout: React.Dispatch<React.SetStateAction<IDashboardLayout>>
 }
 
 export type {

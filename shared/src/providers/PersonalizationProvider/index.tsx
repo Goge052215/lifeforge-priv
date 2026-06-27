@@ -47,8 +47,12 @@ const DEFAULT_VALUE: IPersonalizationData = {
     overlayOpacity: 50
   },
   dashboardLayout: {},
+  calendarLayout: {},
+  integrationsLayout: {},
   language: 'en',
   setDashboardLayout: () => {},
+  setCalendarLayout: () => {},
+  setIntegrationsLayout: () => {},
   setRawThemeColor: () => {},
   setFontFamily: () => {},
   setFontScale: () => {},
@@ -133,6 +137,14 @@ export default function PersonalizationProvider({
 
   const [dashboardLayout, setDashboardLayout] = useState<IDashboardLayout>(
     defaultValue.dashboardLayout
+  )
+
+  const [calendarLayout, setCalendarLayout] = useState<IDashboardLayout>(
+    defaultValue.calendarLayout
+  )
+
+  const [integrationsLayout, setIntegrationsLayout] = useState<IDashboardLayout>(
+    defaultValue.integrationsLayout
   )
 
   const [backdropFilters, setBackdropFilters] = useState<IBackdropFilters>(
@@ -224,19 +236,24 @@ export default function PersonalizationProvider({
       return
     }
 
-    savePersistedPersonalization(window.localStorage, {
-      fontFamily,
-      fontScale,
-      borderRadiusMultiplier,
-      bordered,
-      theme,
-      rawThemeColor,
-      bgTemp,
-      bgImage,
-      backdropFilters,
-      language,
-      dashboardLayout
-    })
+    savePersistedPersonalization(
+      window.localStorage,
+      {
+        fontFamily,
+        fontScale,
+        borderRadiusMultiplier,
+        bordered,
+        theme,
+        rawThemeColor,
+        bgTemp,
+        bgImage,
+        backdropFilters,
+        language,
+        dashboardLayout,
+        calendarLayout,
+        integrationsLayout
+      } as Parameters<typeof savePersistedPersonalization>[1]
+    )
   }, [
     fontFamily,
     fontScale,
@@ -248,7 +265,9 @@ export default function PersonalizationProvider({
     bgImage,
     backdropFilters,
     language,
-    dashboardLayout
+    dashboardLayout,
+    calendarLayout,
+    integrationsLayout
   ])
 
   const value = useMemo<IPersonalizationData>(
@@ -269,7 +288,11 @@ export default function PersonalizationProvider({
       backdropFilters,
       language,
       dashboardLayout,
+      calendarLayout,
+      integrationsLayout,
       setDashboardLayout,
+      setCalendarLayout,
+      setIntegrationsLayout,
       setRawThemeColor,
       setFontFamily,
       setFontScale,
@@ -297,7 +320,9 @@ export default function PersonalizationProvider({
       bgImage,
       backdropFilters,
       language,
-      dashboardLayout
+      dashboardLayout,
+      calendarLayout,
+      integrationsLayout
     ]
   )
 

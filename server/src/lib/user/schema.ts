@@ -20,6 +20,8 @@ export const schemas = {
       fontFamily: z.string(),
       language: z.string(),
       dashboardLayout: z.any(),
+      calendarLayout: z.any(),
+      integrationsLayout: z.any(),
       masterPasswordHash: z.string(),
       APIKeysMasterPasswordHash: z.string(),
       twoFASecret: z.string(),
@@ -248,6 +250,24 @@ export const schemas = {
           hidden: false,
           maxSize: 2000000,
           name: 'dashboardLayout',
+          presentable: false,
+          required: false,
+          system: false,
+          type: 'json'
+        },
+        {
+          hidden: false,
+          maxSize: 2000000,
+          name: 'calendarLayout',
+          presentable: false,
+          required: false,
+          system: false,
+          type: 'json'
+        },
+        {
+          hidden: false,
+          maxSize: 2000000,
+          name: 'integrationsLayout',
           presentable: false,
           required: false,
           system: false,

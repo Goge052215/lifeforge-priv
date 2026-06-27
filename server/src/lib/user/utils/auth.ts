@@ -65,6 +65,12 @@ export async function updateNullData(
   const normalizedDashboardLayout = serializeDashboardLayout(
     userData.dashboardLayout
   )
+  const normalizedCalendarLayout = serializeDashboardLayout(
+    userData.calendarLayout
+  )
+  const normalizedIntegrationsLayout = serializeDashboardLayout(
+    userData.integrationsLayout
+  )
 
   if (
     !userData.dashboardLayout ||
@@ -78,5 +84,29 @@ export async function updateNullData(
 
   userData.dashboardLayout = deserializeDashboardLayout(
     normalizedDashboardLayout
+  )
+  if (
+    !userData.calendarLayout ||
+    JSON.stringify(userData.calendarLayout) !==
+      JSON.stringify(normalizedCalendarLayout)
+  ) {
+    await pb.collection('users').update(userData.id, {
+      calendarLayout: normalizedCalendarLayout
+    })
+  }
+
+  if (
+    !userData.integrationsLayout ||
+    JSON.stringify(userData.integrationsLayout) !==
+      JSON.stringify(normalizedIntegrationsLayout)
+  ) {
+    await pb.collection('users').update(userData.id, {
+      integrationsLayout: normalizedIntegrationsLayout
+    })
+  }
+
+  userData.calendarLayout = deserializeDashboardLayout(normalizedCalendarLayout)
+  userData.integrationsLayout = deserializeDashboardLayout(
+    normalizedIntegrationsLayout
   )
 }

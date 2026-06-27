@@ -77,6 +77,10 @@ function normalizeDashboardLayout(value: unknown): IDashboardLayout {
   )
 }
 
+function isStoredLayout(value: unknown): value is IDashboardLayout {
+  return isDashboardLayout(value)
+}
+
 function isThemeMode(value: unknown): value is 'light' | 'dark' | 'system' {
   return value === 'light' || value === 'dark' || value === 'system'
 }
@@ -90,6 +94,8 @@ const UserPersonalizationContext = createContext<{
   changeBackdropFilters: (filters: IBackdropFilters) => Promise<void>
   changeLanguage: (language: string) => Promise<void>
   changeDashboardLayout: (layout: IDashboardLayout) => Promise<void>
+  changeCalendarLayout: (layout: IDashboardLayout) => Promise<void>
+  changeIntegrationsLayout: (layout: IDashboardLayout) => Promise<void>
   changeBorderRadiusMultiplier: (multiplier: number) => Promise<void>
   changeBordered: (bordered: boolean) => Promise<void>
 }>({} as any)
@@ -132,12 +138,16 @@ function UserPersonalizationProvider({
     setBackdropFilters,
     setLanguage,
     setDashboardLayout,
+    setCalendarLayout,
+    setIntegrationsLayout,
     setFontScale,
     setBgImage,
     setBorderRadiusMultiplier,
     setBordered
   } = usePersonalization()
   const pendingDashboardLayoutRef = useRef<IDashboardLayout | null>(null)
+  const pendingCalendarLayoutRef = useRef<IDashboardLayout | null>(null)
+  const pendingIntegrationsLayoutRef = useRef<IDashboardLayout | null>(null)
 
   async function changeFontFamily(font: string) {
     await syncUserData({ fontFamily: font }, setUserData)
@@ -187,6 +197,42 @@ function UserPersonalizationProvider({
 
     if (await syncUserData({ dashboardLayout: layout }, setUserData)) {
       pendingDashboardLayoutRef.current = null
+    }
+  }
+
+  async function changeCalendarLayout(layout: IDashboardLayout) {
+    setCalendarLayout(layout)
+    pendingCalendarLayoutRef.current = layout
+    if (
+      authLoading ||
+      !auth ||
+      !userData?.id ||
+      typeof window === 'undefined' ||
+      !window.localStorage.getItem('session')
+    ) {
+      return
+    }
+
+    if (await syncUserData({ calendarLayout: layout }, setUserData)) {
+      pendingCalendarLayoutRef.current = null
+    }
+  }
+
+  async function changeIntegrationsLayout(layout: IDashboardLayout) {
+    setIntegrationsLayout(layout)
+    pendingIntegrationsLayoutRef.current = layout
+    if (
+      authLoading ||
+      !auth ||
+      !userData?.id ||
+      typeof window === 'undefined' ||
+      !window.localStorage.getItem('session')
+    ) {
+      return
+    }
+
+    if (await syncUserData({ integrationsLayout: layout }, setUserData)) {
+      pendingIntegrationsLayoutRef.current = null
     }
   }
 
@@ -243,13 +289,31 @@ function UserPersonalizationProvider({
       setLanguage(userData.language)
     }
 
-    if (isDashboardLayout(userData?.dashboardLayout)) {
+    if (isStoredLayout(userData?.dashboardLayout)) {
       const hydratedDashboardLayout = normalizeDashboardLayout(
         userData.dashboardLayout
       )
 
       if (!pendingDashboardLayoutRef.current) {
         setDashboardLayout(hydratedDashboardLayout)
+      }
+    }
+
+    if (isStoredLayout(userData?.calendarLayout)) {
+      const hydratedCalendarLayout = normalizeDashboardLayout(userData.calendarLayout)
+
+      if (!pendingCalendarLayoutRef.current) {
+        setCalendarLayout(hydratedCalendarLayout)
+      }
+    }
+
+    if (isStoredLayout(userData?.integrationsLayout)) {
+      const hydratedIntegrationsLayout = normalizeDashboardLayout(
+        userData.integrationsLayout
+      )
+
+      if (!pendingIntegrationsLayoutRef.current) {
+        setIntegrationsLayout(hydratedIntegrationsLayout)
       }
     }
 
@@ -293,6 +357,55 @@ function UserPersonalizationProvider({
     )
   }, [auth, authLoading, userData?.id, setUserData])
 
+  useEffect(() => {
+    if (
+      authLoading ||
+      !auth ||
+      !userData?.id ||
+      !pendingCalendarLayoutRef.current ||
+      typeof window === 'undefined' ||
+      !window.localStorage.getItem('session')
+    ) {
+      return
+    }
+
+    const pendingLayout = pendingCalendarLayoutRef.current
+
+    void syncUserData({ calendarLayout: pendingLayout }, setUserData).then(
+      success => {
+        if (success && pendingCalendarLayoutRef.current === pendingLayout) {
+          pendingCalendarLayoutRef.current = null
+        }
+      }
+    )
+  }, [auth, authLoading, userData?.id, setUserData])
+
+  useEffect(() => {
+    if (
+      authLoading ||
+      !auth ||
+      !userData?.id ||
+      !pendingIntegrationsLayoutRef.current ||
+      typeof window === 'undefined' ||
+      !window.localStorage.getItem('session')
+    ) {
+      return
+    }
+
+    const pendingLayout = pendingIntegrationsLayoutRef.current
+
+    void syncUserData({ integrationsLayout: pendingLayout }, setUserData).then(
+      success => {
+        if (
+          success &&
+          pendingIntegrationsLayoutRef.current === pendingLayout
+        ) {
+          pendingIntegrationsLayoutRef.current = null
+        }
+      }
+    )
+  }, [auth, authLoading, userData?.id, setUserData])
+
   return (
     <UserPersonalizationContext
       value={{
@@ -304,6 +417,8 @@ function UserPersonalizationProvider({
         changeBackdropFilters,
         changeLanguage,
         changeDashboardLayout,
+        changeCalendarLayout,
+        changeIntegrationsLayout,
         changeBorderRadiusMultiplier,
         changeBordered
       }}

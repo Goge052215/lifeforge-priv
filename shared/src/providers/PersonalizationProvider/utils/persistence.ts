@@ -20,6 +20,8 @@ export interface PersistedPersonalization {
   backdropFilters?: IBackdropFilters
   language?: string
   dashboardLayout?: IDashboardLayout
+  calendarLayout?: IDashboardLayout
+  integrationsLayout?: IDashboardLayout
 }
 
 export const PERSONALIZATION_STORAGE_KEY = 'lifeforge:personalization'
@@ -115,6 +117,24 @@ export function sanitizePersistedPersonalization(
   ) {
     sanitized.dashboardLayout = deserializeDashboardLayout(
       candidate.dashboardLayout
+    )
+  }
+
+  if (
+    typeof candidate.calendarLayout === 'object' &&
+    candidate.calendarLayout !== null &&
+    !Array.isArray(candidate.calendarLayout)
+  ) {
+    sanitized.calendarLayout = deserializeDashboardLayout(candidate.calendarLayout)
+  }
+
+  if (
+    typeof candidate.integrationsLayout === 'object' &&
+    candidate.integrationsLayout !== null &&
+    !Array.isArray(candidate.integrationsLayout)
+  ) {
+    sanitized.integrationsLayout = deserializeDashboardLayout(
+      candidate.integrationsLayout
     )
   }
 

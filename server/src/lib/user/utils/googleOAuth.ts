@@ -1,4 +1,4 @@
-import { encrypt2 } from '@functions/auth/encryption'
+import { decrypt2, encrypt2 } from '@functions/auth/encryption'
 import {
   connectToPocketBase,
   validateEnvironmentVariables
@@ -49,6 +49,39 @@ export interface GoogleConnectionData {
   scopes: string[]
   services: GoogleService[]
   sub: string
+}
+
+export interface GoogleCalendarEventData {
+  id: string
+  summary: string
+  description: string
+  status: string
+  htmlLink: string
+  start: string
+  end: string
+  startDateKey: string
+  endDateKey: string
+  isAllDay: boolean
+}
+
+interface GoogleCalendarAPIEvent {
+  id?: string
+  summary?: string
+  description?: string
+  status?: string
+  htmlLink?: string
+  start?: {
+    date?: string
+    dateTime?: string
+  }
+  end?: {
+    date?: string
+    dateTime?: string
+  }
+}
+
+interface GoogleCalendarEventsResponse {
+  items?: GoogleCalendarAPIEvent[]
 }
 
 export function parseGoogleServices(rawServices?: string): GoogleService[] {
@@ -153,6 +186,33 @@ async function exchangeGoogleCodeForTokens({
   return (await response.json()) as GoogleTokenResponse
 }
 
+async function refreshGoogleAccessToken(
+  refreshToken: string
+): Promise<GoogleTokenResponse> {
+  const { clientId, clientSecret } = getGoogleOAuthConfig()
+
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken
+  })
+
+  const response = await fetch(GOOGLE_TOKEN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to refresh Google Calendar access token.')
+  }
+
+  return (await response.json()) as GoogleTokenResponse
+}
+
 async function fetchGoogleUserInfo(
   accessToken: string
 ): Promise<GoogleUserInfoResponse> {
@@ -219,4 +279,110 @@ export async function linkGoogleAccount({
   })
 
   return connectionData
+}
+
+function normalizeGoogleCalendarEvent(
+  event: GoogleCalendarAPIEvent
+): GoogleCalendarEventData | null {
+  if (!event.id || !event.start || !event.end) {
+    return null
+  }
+
+  const isAllDay = typeof event.start.date === 'string'
+  const start = event.start.dateTime ?? event.start.date ?? ''
+  const end = event.end.dateTime ?? event.end.date ?? start
+
+  if (!start || !end) {
+    return null
+  }
+
+  return {
+    id: event.id,
+    summary: event.summary?.trim() || 'Untitled event',
+    description: event.description?.trim() || '',
+    status: event.status?.trim() || 'confirmed',
+    htmlLink: event.htmlLink?.trim() || '',
+    start,
+    end,
+    startDateKey: start.slice(0, 10),
+    endDateKey: end.slice(0, 10),
+    isAllDay
+  }
+}
+
+export async function listGoogleCalendarEvents({
+  userId,
+  timeMin,
+  timeMax,
+  maxResults = 25
+}: {
+  userId: string
+  timeMin?: string
+  timeMax?: string
+  maxResults?: number
+}): Promise<{
+  connected: boolean
+  calendarEnabled: boolean
+  events: GoogleCalendarEventData[]
+}> {
+  const superPBInstance = await connectToPocketBase(validateEnvironmentVariables())
+  const userRecord = await superPBInstance.collection('users').getOne(userId)
+  const googleConnection = userRecord.googleConnection as
+    | GoogleConnectionData
+    | null
+    | undefined
+
+  if (!googleConnection?.email || !userRecord.googleRefreshToken) {
+    return {
+      connected: false,
+      calendarEnabled: false,
+      events: []
+    }
+  }
+
+  if (!googleConnection.services?.includes('calendar')) {
+    return {
+      connected: true,
+      calendarEnabled: false,
+      events: []
+    }
+  }
+
+  if (!process.env.MASTER_KEY) {
+    throw new Error('MASTER_KEY is required to access Google Calendar.')
+  }
+
+  const refreshToken = decrypt2(userRecord.googleRefreshToken, process.env.MASTER_KEY)
+  const tokenResponse = await refreshGoogleAccessToken(refreshToken)
+  const searchParams = new URLSearchParams({
+    maxResults: String(Math.min(100, Math.max(1, maxResults))),
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    ...(timeMin ? { timeMin } : {}),
+    ...(timeMax ? { timeMax } : {})
+  })
+
+  const response = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events?${searchParams.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${tokenResponse.access_token}`
+      }
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to retrieve Google Calendar events.')
+  }
+
+  const data = (await response.json()) as GoogleCalendarEventsResponse
+
+  return {
+    connected: true,
+    calendarEnabled: true,
+    events:
+      data.items
+        ?.map(item => normalizeGoogleCalendarEvent(item))
+        .filter((item): item is GoogleCalendarEventData => item !== null) ?? []
+  }
 }

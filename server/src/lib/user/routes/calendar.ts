@@ -1,0 +1,62 @@
+import z from 'zod'
+
+import forge from '../forge'
+import { listGoogleCalendarEvents } from '../utils/googleOAuth'
+
+const googleCalendarEventSchema = z.object({
+  id: z.string(),
+  summary: z.string(),
+  description: z.string(),
+  status: z.string(),
+  htmlLink: z.string(),
+  start: z.string(),
+  end: z.string(),
+  startDateKey: z.string(),
+  endDateKey: z.string(),
+  isAllDay: z.boolean()
+})
+
+export const listPrimaryEvents = forge
+  .query({
+    description: 'List events from the linked Google primary calendar',
+    input: {
+      query: z.object({
+        timeMin: z.string().optional(),
+        timeMax: z.string().optional(),
+        maxResults: z.number().min(1).max(100).optional()
+      })
+    },
+    output: {
+      OK: z.object({
+        connected: z.boolean(),
+        calendarEnabled: z.boolean(),
+        events: z.array(googleCalendarEventSchema)
+      }),
+      BAD_REQUEST: z.string(),
+      UNAUTHORIZED: true
+    }
+  })
+  .callback(async ({ pb, query: { timeMin, timeMax, maxResults }, response }) => {
+    const userId = pb.instance.authStore.record?.id
+
+    if (!userId) {
+      return response.unauthorized()
+    }
+
+    try {
+      const result = await listGoogleCalendarEvents({
+        userId,
+        timeMin,
+        timeMax,
+        maxResults
+      })
+
+      return response.ok(result)
+    } catch (error) {
+      return response.badRequest(
+        error instanceof Error
+          ? error.message
+          : 'Failed to retrieve Google Calendar events.'
+      )
+    }
+  })

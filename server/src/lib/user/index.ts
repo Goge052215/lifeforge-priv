@@ -8,6 +8,7 @@ import { forgeRouter } from '@lifeforge/server-utils'
 
 import forge from './forge'
 import * as authRoutes from './routes/auth'
+import * as calendarRoutes from './routes/calendar'
 import * as customFontsRoutes from './routes/customFonts'
 import * as oAuthRoutes from './routes/oauth'
 import * as personalizationRoutes from './routes/personalization'
@@ -35,6 +36,7 @@ export default forgeRouter({
       return response.ok(users.length > 0)
     }),
   auth: authRoutes,
+  calendar: calendarRoutes,
   oauth: oAuthRoutes,
   '2fa': twoFARoutes,
   qrLogin: qrLoginRoutes,

@@ -284,6 +284,8 @@ export const contract = {
                 "type": "string"
               },
               "dashboardLayout": {},
+              "calendarLayout": {},
+              "integrationsLayout": {},
               "fontScale": {
                 "type": "number"
               },
@@ -342,6 +344,8 @@ export const contract = {
               "fontFamily",
               "language",
               "dashboardLayout",
+              "calendarLayout",
+              "integrationsLayout",
               "fontScale",
               "pinnedFontFamilies",
               "borderRadiusMultiplier",
@@ -807,6 +811,112 @@ export const contract = {
         "input": {},
         "output": {
           "NO_CONTENT": true
+        }
+      }
+    },
+    "calendar": {
+      "listPrimaryEvents": {
+        "method": "get",
+        "description": "List events from the linked Google primary calendar",
+        "noAuth": false,
+        "encrypted": true,
+        "isDownloadable": false,
+        "media": null,
+        "input": {
+          "query": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "timeMin": {
+                "type": "string"
+              },
+              "timeMax": {
+                "type": "string"
+              },
+              "maxResults": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 100
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "output": {
+          "OK": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "connected": {
+                "type": "boolean"
+              },
+              "calendarEnabled": {
+                "type": "boolean"
+              },
+              "events": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "htmlLink": {
+                      "type": "string"
+                    },
+                    "start": {
+                      "type": "string"
+                    },
+                    "end": {
+                      "type": "string"
+                    },
+                    "startDateKey": {
+                      "type": "string"
+                    },
+                    "endDateKey": {
+                      "type": "string"
+                    },
+                    "isAllDay": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "summary",
+                    "description",
+                    "status",
+                    "htmlLink",
+                    "start",
+                    "end",
+                    "startDateKey",
+                    "endDateKey",
+                    "isAllDay"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "connected",
+              "calendarEnabled",
+              "events"
+            ],
+            "additionalProperties": false
+          },
+          "BAD_REQUEST": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "string"
+          },
+          "UNAUTHORIZED": true
         }
       }
     },
@@ -1579,6 +1689,14 @@ export const contract = {
                     "type": "boolean"
                   },
                   "dashboardLayout": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "calendarLayout": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "integrationsLayout": {
                     "type": "object",
                     "additionalProperties": {}
                   },
