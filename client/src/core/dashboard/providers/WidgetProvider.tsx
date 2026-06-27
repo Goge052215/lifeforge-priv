@@ -17,6 +17,7 @@ import IntegrationsWidget, {
   config as integrationsConfig
 } from '../widgets/Integrations'
 import QuotesWidget, { config as quotesConfig } from '../widgets/Quotes'
+import RoundClockWidget, { config as roundClockConfig } from '../widgets/RoundClock'
 
 export interface WidgetEntry {
   component: React.FC<{ dimension: { w: number; h: number } }>
@@ -54,6 +55,7 @@ const CORE_WIDGETS: Array<{
   { component: DateWidget, config: dateConfig },
   { component: IntegrationsWidget, config: integrationsConfig },
   { component: QuotesWidget, config: quotesConfig }
+  ,{ component: RoundClockWidget, config: roundClockConfig }
 ]
 
 function WidgetProvider({ children }: { children: React.ReactNode }) {

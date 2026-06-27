@@ -65,6 +65,7 @@ function CalendarWidget({
   const now = dayjs()
   const monthKey = now.format('YYYY-MM')
   const compactWeekday = dimension.w <= 2
+  const compactCalendar = dimension.w <= 2 || dimension.h <= 3
   const showEventList = dimension.h >= 4
   const weekdays = compactWeekday
     ? ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -173,7 +174,7 @@ function CalendarWidget({
       <div
         style={{
           display: 'grid',
-          gap: '0.35rem',
+          gap: compactCalendar ? '0.2rem' : '0.35rem',
           gridTemplateColumns: 'repeat(7, minmax(0, 1fr))'
         }}
       >
@@ -187,7 +188,7 @@ function CalendarWidget({
       <div
         style={{
           display: 'grid',
-          gap: '0.35rem',
+          gap: compactCalendar ? '0.2rem' : '0.35rem',
           gridTemplateColumns: 'repeat(7, minmax(0, 1fr))'
         }}
       >
@@ -205,15 +206,17 @@ function CalendarWidget({
                     ? { base: 'bg-200', dark: 'bg-800' }
                     : { base: 'bg-100', dark: 'bg-900' }
               }
-              minHeight={showEventList ? '3.25rem' : '2.7rem'}
-              p={dimension.w <= 2 ? 'xs' : 'sm'}
+              minHeight={
+                compactCalendar ? '2.15rem' : showEventList ? '3.25rem' : '2.7rem'
+              }
+              p={compactCalendar ? 'xs' : dimension.w <= 2 ? 'xs' : 'sm'}
               r="lg"
             >
               <Stack centered gap="xs" height="100%">
                 <Text
                   align="center"
                   color={isToday ? 'bg-50' : isCurrentMonth ? undefined : 'muted'}
-                  size="sm"
+                  size={compactCalendar ? 'xs' : 'sm'}
                   weight={isToday ? 'semibold' : 'medium'}
                 >
                   {date.date()}
@@ -222,7 +225,7 @@ function CalendarWidget({
                   <Text
                     align="center"
                     color={isToday ? 'bg-50' : 'primary'}
-                    size="sm"
+                    size="xs"
                     weight="medium"
                   >
                     {dayEventCount}
@@ -234,19 +237,10 @@ function CalendarWidget({
         })}
       </div>
 
-      {!googleConnected ? (
-        <Text color="muted">
-          Local calendar is available. Link Google to sync your events.
-        </Text>
-      ) : calendarQuery.isLoading ? (
-        <Text color="muted">Loading Google Calendar...</Text>
-      ) : calendarQuery.error instanceof Error ? (
-        <Text color="dangerous">Unable to load Google Calendar right now.</Text>
-      ) : !calendarEnabled ? (
-        <Text color="muted">
-          Google is linked, but Calendar permission still needs approval.
-        </Text>
-      ) : showEventList && visibleEvents.length > 0 ? (
+      {googleConnected &&
+      calendarEnabled &&
+      showEventList &&
+      visibleEvents.length > 0 ? (
         <Stack gap="sm">
           {visibleEvents.map(event => (
             <Flex
@@ -273,8 +267,6 @@ function CalendarWidget({
             </Flex>
           ))}
         </Stack>
-      ) : googleConnected && calendarEnabled ? (
-        <Text color="muted">No calendar events in this month window.</Text>
       ) : null}
 
       {showEventList && eventCount > visibleEvents.length ? (
