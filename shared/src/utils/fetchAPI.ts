@@ -7,6 +7,14 @@ interface ApiResponse<T> {
   message?: string
 }
 
+function reportFetchApiDebug(
+  level: 'info' | 'warn' | 'error',
+  msg: string,
+  data: Record<string, unknown>
+) {
+  console[level](`[personalization-401-loop] ${msg}`, data)
+}
+
 function createAxiosInstance(apiHost: string, isExternal: boolean) {
   const instance = axios.create({
     baseURL: isExternal ? undefined : apiHost,
@@ -20,6 +28,28 @@ function createAxiosInstance(apiHost: string, isExternal: boolean) {
 
       if (session) {
         config.headers.Authorization = `Bearer ${session}`
+      }
+
+      if (String(config.url || '').includes('/user/personalization/updatePersonalization')) {
+        const traceId =
+          config.headers['X-Debug-Trace-Id'] ||
+          `fetchapi-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+        config.headers['X-Debug-Trace-Id'] = traceId
+        // #region debug-point C:personalization-request
+        reportFetchApiDebug(
+          'info',
+          'personalization request prepared',
+          {
+            location: 'fetchAPI.ts:createAxiosInstance:request',
+            method: config.method?.toUpperCase(),
+            url: config.url,
+            hasSession: Boolean(session),
+            hasAuthorizationHeader: Boolean(config.headers.Authorization),
+            traceId: String(traceId)
+          }
+        )
+        // #endregion
       }
     }
 
@@ -170,8 +200,47 @@ export default async function fetchAPI<T>(
   try {
     const response = await axiosInstance.request<T>(config)
 
+    if (
+      !isExternal &&
+      normalizedEndpoint.includes('/user/personalization/updatePersonalization')
+    ) {
+      // #region debug-point B:personalization-response
+      reportFetchApiDebug(
+        'info',
+        'personalization response received',
+        {
+          location: 'fetchAPI.ts:fetchAPI:response',
+          status: response.status,
+          endpoint: normalizedEndpoint,
+          traceId: String(config.headers?.['X-Debug-Trace-Id'] || '')
+        }
+      )
+      // #endregion
+    }
+
     return await handleAxiosResponse<T>(response, isExternal)
   } catch (err) {
+    if (
+      !isExternal &&
+      normalizedEndpoint.includes('/user/personalization/updatePersonalization')
+    ) {
+      // #region debug-point B:personalization-response-error
+      reportFetchApiDebug(
+        'warn',
+        'personalization request threw error',
+        {
+          location: 'fetchAPI.ts:fetchAPI:error',
+          endpoint: normalizedEndpoint,
+          errorMessage: err instanceof Error ? err.message : String(err),
+          hasSession:
+            typeof localStorage !== 'undefined' &&
+            Boolean(localStorage.getItem('session')),
+          traceId: String(config.headers?.['X-Debug-Trace-Id'] || '')
+        }
+      )
+      // #endregion
+    }
+
     if (raiseError) {
       if (axios.isAxiosError(err)) {
         // Handle axios-specific errors

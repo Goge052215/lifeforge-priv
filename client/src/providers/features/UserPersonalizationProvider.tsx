@@ -10,6 +10,18 @@ import {
 
 import forgeAPI from '@/forgeAPI'
 
+function reportPersonalizationDebug(
+  level: 'info' | 'warn' | 'error',
+  msg: string,
+  data: Record<string, unknown>
+) {
+  console[level](`[personalization-401-loop] ${msg}`, data)
+}
+
+function createDebugTraceId(scope: string) {
+  return `${scope}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value !== ''
 }
@@ -110,13 +122,41 @@ const UserPersonalizationContext = createContext<{
 async function syncUserData(
   data: Record<string, unknown>,
   setUserData: React.Dispatch<React.SetStateAction<any>>,
-  onAuthFailure?: () => void
+  onAuthFailure?: () => void,
+  debugContext?: {
+    source: string
+    traceId: string
+  }
 ): Promise<boolean> {
+  // #region debug-point B:sync-user-data-entry
+  reportPersonalizationDebug(
+    'info',
+    'personalization sync started',
+    {
+      location: 'UserPersonalizationProvider.tsx:syncUserData:entry',
+      dataKeys: Object.keys(data),
+      source: debugContext?.source ?? 'unknown',
+      traceId: debugContext?.traceId
+    }
+  )
+  // #endregion
   try {
     await forgeAPI.user.personalization.updatePersonalization.mutate({
       data
     })
 
+    // #region debug-point B:sync-user-data-success
+    reportPersonalizationDebug(
+      'info',
+      'personalization sync succeeded',
+      {
+        location: 'UserPersonalizationProvider.tsx:syncUserData:success',
+        dataKeys: Object.keys(data),
+        source: debugContext?.source ?? 'unknown',
+        traceId: debugContext?.traceId
+      }
+    )
+    // #endregion
     if (setUserData) {
       setUserData((oldData: any) => {
         if (!oldData) return oldData
@@ -126,6 +166,19 @@ async function syncUserData(
     }
     return true
   } catch (error) {
+    // #region debug-point B:sync-user-data-failure
+    reportPersonalizationDebug(
+      'warn',
+      'personalization sync failed',
+      {
+        location: 'UserPersonalizationProvider.tsx:syncUserData:failure',
+        dataKeys: Object.keys(data),
+        source: debugContext?.source ?? 'unknown',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        traceId: debugContext?.traceId
+      }
+    )
+    // #endregion
     if (error instanceof Error && isAuthFailureMessage(error.message)) {
       onAuthFailure?.()
       toast.error('Your session expired. Sign in again to save personalization.')
@@ -164,6 +217,21 @@ function UserPersonalizationProvider({
   const pendingIntegrationsLayoutRef = useRef<IDashboardLayout | null>(null)
 
   function handlePersistenceAuthFailure() {
+    // #region debug-point C:persistence-auth-failure
+    reportPersonalizationDebug(
+      'warn',
+      'personalization auth failure handler invoked',
+      {
+        location: 'UserPersonalizationProvider.tsx:handlePersistenceAuthFailure',
+        hasPendingDashboardLayout: Boolean(pendingDashboardLayoutRef.current),
+        hasPendingCalendarLayout: Boolean(pendingCalendarLayoutRef.current),
+        hasPendingIntegrationsLayout: Boolean(pendingIntegrationsLayoutRef.current),
+        hasSession:
+          typeof window !== 'undefined' &&
+          Boolean(window.localStorage.getItem('session'))
+      }
+    )
+    // #endregion
     pendingDashboardLayoutRef.current = null
     pendingCalendarLayoutRef.current = null
     pendingIntegrationsLayoutRef.current = null
@@ -216,8 +284,26 @@ function UserPersonalizationProvider({
   }
 
   async function changeDashboardLayout(layout: IDashboardLayout) {
+    const traceId = createDebugTraceId('dashboard-immediate')
     setDashboardLayout(layout)
     pendingDashboardLayoutRef.current = layout
+    // #region debug-point B:change-dashboard-layout-entry
+    reportPersonalizationDebug(
+      'info',
+      'dashboard layout change received',
+      {
+        location: 'UserPersonalizationProvider.tsx:changeDashboardLayout:entry',
+        authLoading,
+        hasAuth: Boolean(auth),
+        hasUserId: Boolean(userData?.id),
+        hasSession:
+          typeof window !== 'undefined' &&
+          Boolean(window.localStorage.getItem('session')),
+        pendingBreakpoints: Object.keys(layout || {}),
+        traceId
+      }
+    )
+    // #endregion
     if (
       authLoading ||
       !auth ||
@@ -225,6 +311,22 @@ function UserPersonalizationProvider({
       typeof window === 'undefined' ||
       !window.localStorage.getItem('session')
     ) {
+      // #region debug-point B:change-dashboard-layout-skipped
+      reportPersonalizationDebug(
+        'info',
+        'dashboard layout change skipped sync',
+        {
+          location: 'UserPersonalizationProvider.tsx:changeDashboardLayout:skipped',
+          authLoading,
+          hasAuth: Boolean(auth),
+          hasUserId: Boolean(userData?.id),
+          hasSession:
+            typeof window !== 'undefined' &&
+            Boolean(window.localStorage.getItem('session')),
+          traceId
+        }
+      )
+      // #endregion
       return
     }
 
@@ -232,7 +334,8 @@ function UserPersonalizationProvider({
       await syncUserData(
         { dashboardLayout: layout },
         setUserData,
-        handlePersistenceAuthFailure
+        handlePersistenceAuthFailure,
+        { source: 'changeDashboardLayout', traceId }
       )
     ) {
       pendingDashboardLayoutRef.current = null
@@ -240,8 +343,26 @@ function UserPersonalizationProvider({
   }
 
   async function changeCalendarLayout(layout: IDashboardLayout) {
+    const traceId = createDebugTraceId('calendar-immediate')
     setCalendarLayout(layout)
     pendingCalendarLayoutRef.current = layout
+    // #region debug-point B:change-calendar-layout-entry
+    reportPersonalizationDebug(
+      'info',
+      'calendar layout change received',
+      {
+        location: 'UserPersonalizationProvider.tsx:changeCalendarLayout:entry',
+        authLoading,
+        hasAuth: Boolean(auth),
+        hasUserId: Boolean(userData?.id),
+        hasSession:
+          typeof window !== 'undefined' &&
+          Boolean(window.localStorage.getItem('session')),
+        pendingBreakpoints: Object.keys(layout || {}),
+        traceId
+      }
+    )
+    // #endregion
     if (
       authLoading ||
       !auth ||
@@ -249,6 +370,22 @@ function UserPersonalizationProvider({
       typeof window === 'undefined' ||
       !window.localStorage.getItem('session')
     ) {
+      // #region debug-point B:change-calendar-layout-skipped
+      reportPersonalizationDebug(
+        'info',
+        'calendar layout change skipped sync',
+        {
+          location: 'UserPersonalizationProvider.tsx:changeCalendarLayout:skipped',
+          authLoading,
+          hasAuth: Boolean(auth),
+          hasUserId: Boolean(userData?.id),
+          hasSession:
+            typeof window !== 'undefined' &&
+            Boolean(window.localStorage.getItem('session')),
+          traceId
+        }
+      )
+      // #endregion
       return
     }
 
@@ -256,7 +393,8 @@ function UserPersonalizationProvider({
       await syncUserData(
         { calendarLayout: layout },
         setUserData,
-        handlePersistenceAuthFailure
+        handlePersistenceAuthFailure,
+        { source: 'changeCalendarLayout', traceId }
       )
     ) {
       pendingCalendarLayoutRef.current = null
@@ -264,8 +402,26 @@ function UserPersonalizationProvider({
   }
 
   async function changeIntegrationsLayout(layout: IDashboardLayout) {
+    const traceId = createDebugTraceId('integrations-immediate')
     setIntegrationsLayout(layout)
     pendingIntegrationsLayoutRef.current = layout
+    // #region debug-point B:change-integrations-layout-entry
+    reportPersonalizationDebug(
+      'info',
+      'integrations layout change received',
+      {
+        location: 'UserPersonalizationProvider.tsx:changeIntegrationsLayout:entry',
+        authLoading,
+        hasAuth: Boolean(auth),
+        hasUserId: Boolean(userData?.id),
+        hasSession:
+          typeof window !== 'undefined' &&
+          Boolean(window.localStorage.getItem('session')),
+        pendingBreakpoints: Object.keys(layout || {}),
+        traceId
+      }
+    )
+    // #endregion
     if (
       authLoading ||
       !auth ||
@@ -273,6 +429,23 @@ function UserPersonalizationProvider({
       typeof window === 'undefined' ||
       !window.localStorage.getItem('session')
     ) {
+      // #region debug-point B:change-integrations-layout-skipped
+      reportPersonalizationDebug(
+        'info',
+        'integrations layout change skipped sync',
+        {
+          location:
+            'UserPersonalizationProvider.tsx:changeIntegrationsLayout:skipped',
+          authLoading,
+          hasAuth: Boolean(auth),
+          hasUserId: Boolean(userData?.id),
+          hasSession:
+            typeof window !== 'undefined' &&
+            Boolean(window.localStorage.getItem('session')),
+          traceId
+        }
+      )
+      // #endregion
       return
     }
 
@@ -280,7 +453,8 @@ function UserPersonalizationProvider({
       await syncUserData(
         { integrationsLayout: layout },
         setUserData,
-        handlePersistenceAuthFailure
+        handlePersistenceAuthFailure,
+        { source: 'changeIntegrationsLayout', traceId }
       )
     ) {
       pendingIntegrationsLayoutRef.current = null
@@ -402,11 +576,26 @@ function UserPersonalizationProvider({
     }
 
     const pendingLayout = pendingDashboardLayoutRef.current
+    const traceId = createDebugTraceId('dashboard-effect')
+
+    // #region debug-point E:dashboard-effect-entry
+    reportPersonalizationDebug(
+      'info',
+      'dashboard pending layout effect triggered',
+      {
+        location: 'UserPersonalizationProvider.tsx:dashboardEffect:entry',
+        hasPendingLayout: Boolean(pendingLayout),
+        pendingBreakpoints: Object.keys(pendingLayout || {}),
+        traceId
+      }
+    )
+    // #endregion
 
     void syncUserData(
       { dashboardLayout: pendingLayout },
       setUserData,
-      handlePersistenceAuthFailure
+      handlePersistenceAuthFailure,
+      { source: 'dashboardEffect', traceId }
     ).then(
       success => {
         if (success && pendingDashboardLayoutRef.current === pendingLayout) {
@@ -429,11 +618,26 @@ function UserPersonalizationProvider({
     }
 
     const pendingLayout = pendingCalendarLayoutRef.current
+    const traceId = createDebugTraceId('calendar-effect')
+
+    // #region debug-point E:calendar-effect-entry
+    reportPersonalizationDebug(
+      'info',
+      'calendar pending layout effect triggered',
+      {
+        location: 'UserPersonalizationProvider.tsx:calendarEffect:entry',
+        hasPendingLayout: Boolean(pendingLayout),
+        pendingBreakpoints: Object.keys(pendingLayout || {}),
+        traceId
+      }
+    )
+    // #endregion
 
     void syncUserData(
       { calendarLayout: pendingLayout },
       setUserData,
-      handlePersistenceAuthFailure
+      handlePersistenceAuthFailure,
+      { source: 'calendarEffect', traceId }
     ).then(
       success => {
         if (success && pendingCalendarLayoutRef.current === pendingLayout) {
@@ -456,11 +660,26 @@ function UserPersonalizationProvider({
     }
 
     const pendingLayout = pendingIntegrationsLayoutRef.current
+    const traceId = createDebugTraceId('integrations-effect')
+
+    // #region debug-point E:integrations-effect-entry
+    reportPersonalizationDebug(
+      'info',
+      'integrations pending layout effect triggered',
+      {
+        location: 'UserPersonalizationProvider.tsx:integrationsEffect:entry',
+        hasPendingLayout: Boolean(pendingLayout),
+        pendingBreakpoints: Object.keys(pendingLayout || {}),
+        traceId
+      }
+    )
+    // #endregion
 
     void syncUserData(
       { integrationsLayout: pendingLayout },
       setUserData,
-      handlePersistenceAuthFailure
+      handlePersistenceAuthFailure,
+      { source: 'integrationsEffect', traceId }
     ).then(
       success => {
         if (

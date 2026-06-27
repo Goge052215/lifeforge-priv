@@ -50,8 +50,8 @@ type CalendarStageBoundary = {
 }
 
 // Stage documentation for future maintenance:
-// Level 1: Bare compact month grid, no day blocks, initials only, selection via subtle ring.
-// Level 2: Expanded compact grid, no day blocks, short weekday labels, event dots/counts.
+// Level 1: Bare compact month grid with compact day blocks and initials only.
+// Level 2: Expanded compact grid with compact day blocks, short weekday labels, event dots/counts.
 // Level 3: Card-based day cells, full month label, month summary, no detailed agenda panel.
 // Level 4: Full card-based grid with selected-day detail panel and richer month summary.
 const CALENDAR_STAGE_CONFIG: Record<CalendarStage, CalendarStageConfig> = {
@@ -60,7 +60,7 @@ const CALENDAR_STAGE_CONFIG: Record<CalendarStage, CalendarStageConfig> = {
     weekdayLabels: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
     monthFormat: 'MMM YYYY',
     gridGap: '0.12rem',
-    showCellBlocks: false,
+    showCellBlocks: true,
     showSelectedDatePanel: false,
     showEventList: false,
     showMonthSummary: false,
@@ -72,7 +72,7 @@ const CALENDAR_STAGE_CONFIG: Record<CalendarStage, CalendarStageConfig> = {
     weekdayLabels: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
     monthFormat: 'MMM YYYY',
     gridGap: '0.2rem',
-    showCellBlocks: false,
+    showCellBlocks: true,
     showSelectedDatePanel: false,
     showEventList: false,
     showMonthSummary: true,
@@ -540,7 +540,7 @@ export default CalendarWidget
 export const config: WidgetConfig = {
   id: 'calendar',
   icon: 'tabler:calendar-month',
-  minW: 2,
-  minH: 2,
+  minW: 3,
+  minH: 3,
   maxW: 4
 }
