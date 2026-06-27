@@ -10,8 +10,12 @@ import {
 import { type WidgetConfig, useFederation } from '@lifeforge/shared'
 import { LoadingScreen } from '@lifeforge/ui'
 
+import CalendarWidget, { config as calendarConfig } from '../widgets/Calendar'
 import ClockWidget, { config as clockConfig } from '../widgets/Clock'
 import DateWidget, { config as dateConfig } from '../widgets/Date'
+import IntegrationsWidget, {
+  config as integrationsConfig
+} from '../widgets/Integrations'
 import QuotesWidget, { config as quotesConfig } from '../widgets/Quotes'
 
 export interface WidgetEntry {
@@ -45,8 +49,10 @@ const CORE_WIDGETS: Array<{
   component: React.FC<{ dimension: { w: number; h: number } }>
   config: WidgetConfig
 }> = [
+  { component: CalendarWidget, config: calendarConfig },
   { component: ClockWidget, config: clockConfig },
   { component: DateWidget, config: dateConfig },
+  { component: IntegrationsWidget, config: integrationsConfig },
   { component: QuotesWidget, config: quotesConfig }
 ]
 

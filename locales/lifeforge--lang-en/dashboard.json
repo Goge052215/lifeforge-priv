@@ -13,6 +13,14 @@
     "quotes": {
       "description": "A random quote to inspire you through the day.",
       "title": "Quotes"
+    },
+    "calendar": {
+      "title": "Calendar",
+      "description": "Your linked Google Calendar events, directly on the dashboard."
+    },
+    "integrations": {
+      "title": "Integrations",
+      "description": "Manage linked Google services from the dashboard."
     }
   },
   "modals": {
