@@ -180,78 +180,8 @@ export async function linkGoogleAccount({
   services: GoogleService[]
   userId: string
 }): Promise<GoogleConnectionData> {
-  // #region debug-point B:token-exchange-start
-  fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: process.env.DEBUG_SESSION_ID || 'google-link-hang',
-      runId: 'pre-fix',
-      hypothesisId: 'B',
-      location: 'googleOAuth.ts:183',
-      msg: '[DEBUG] starting google token exchange',
-      data: {
-        redirectUri,
-        services,
-        userId
-      },
-      ts: Date.now()
-    })
-  }).catch(() => {})
-  // #endregion
   const tokenResponse = await exchangeGoogleCodeForTokens({ code, redirectUri })
-  // #region debug-point B:token-exchange-finished
-  fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: process.env.DEBUG_SESSION_ID || 'google-link-hang',
-      runId: 'pre-fix',
-      hypothesisId: 'B',
-      location: 'googleOAuth.ts:184',
-      msg: '[DEBUG] google token exchange finished',
-      data: {
-        hasAccessToken: Boolean(tokenResponse.access_token),
-        hasRefreshToken: Boolean(tokenResponse.refresh_token)
-      },
-      ts: Date.now()
-    })
-  }).catch(() => {})
-  // #endregion
-  // #region debug-point B:userinfo-start
-  fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: process.env.DEBUG_SESSION_ID || 'google-link-hang',
-      runId: 'pre-fix',
-      hypothesisId: 'B',
-      location: 'googleOAuth.ts:185',
-      msg: '[DEBUG] starting google userinfo fetch',
-      data: {},
-      ts: Date.now()
-    })
-  }).catch(() => {})
-  // #endregion
   const userInfo = await fetchGoogleUserInfo(tokenResponse.access_token)
-  // #region debug-point B:userinfo-finished
-  fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: process.env.DEBUG_SESSION_ID || 'google-link-hang',
-      runId: 'pre-fix',
-      hypothesisId: 'B',
-      location: 'googleOAuth.ts:186',
-      msg: '[DEBUG] google userinfo fetch finished',
-      data: {
-        email: userInfo.email,
-        hasSub: Boolean(userInfo.sub)
-      },
-      ts: Date.now()
-    })
-  }).catch(() => {})
-  // #endregion
 
   if (!userInfo.email || !userInfo.sub) {
     throw new Error('Google account details are incomplete.')
@@ -282,46 +212,11 @@ export async function linkGoogleAccount({
   }
 
   const superPBInstance = await connectToPocketBase(validateEnvironmentVariables())
-  // #region debug-point C:pb-auth-finished
-  fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: process.env.DEBUG_SESSION_ID || 'google-link-hang',
-      runId: 'pre-fix',
-      hypothesisId: 'C',
-      location: 'googleOAuth.ts:214',
-      msg: '[DEBUG] pocketbase superuser connection finished',
-      data: {
-        userId
-      },
-      ts: Date.now()
-    })
-  }).catch(() => {})
-  // #endregion
 
   await superPBInstance.collection('users').update(userId, {
     googleConnection: connectionData,
     googleRefreshToken: encrypt2(tokenResponse.refresh_token, process.env.MASTER_KEY)
   })
-  // #region debug-point C:pb-update-finished
-  fetch(process.env.DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: process.env.DEBUG_SESSION_ID || 'google-link-hang',
-      runId: 'pre-fix',
-      hypothesisId: 'C',
-      location: 'googleOAuth.ts:216',
-      msg: '[DEBUG] pocketbase google connection update finished',
-      data: {
-        userId,
-        email: connectionData.email
-      },
-      ts: Date.now()
-    })
-  }).catch(() => {})
-  // #endregion
 
   return connectionData
 }

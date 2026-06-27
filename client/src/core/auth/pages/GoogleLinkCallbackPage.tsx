@@ -1,14 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { toast } from 'react-toastify'
 
-import { useAuth, useNavigate, useSearchParams } from '@lifeforge/shared'
+import { useAuth, useSearchParams } from '@lifeforge/shared'
 import { LoadingScreen } from '@lifeforge/ui'
 
 import forgeAPI from '@/forgeAPI'
 
 function GoogleLinkCallbackPage() {
-  const { auth, authLoading, setUserData } = useAuth()
-  const navigate = useNavigate()
+  const { auth, authLoading } = useAuth()
   const [searchParams] = useSearchParams()
   const handledRef = useRef(false)
 
@@ -24,14 +23,14 @@ function GoogleLinkCallbackPage() {
     if (!code || !state) {
       handledRef.current = true
       toast.error('Invalid Google linking attempt.')
-      navigate(fallbackRedirect, { replace: true })
+      window.location.replace(fallbackRedirect)
       return
     }
 
     if (!auth) {
       handledRef.current = true
       toast.error('You need an active session to link Google services.')
-      navigate('/auth', { replace: true })
+      window.location.replace('/auth')
       return
     }
 
@@ -42,12 +41,9 @@ function GoogleLinkCallbackPage() {
         code,
         state
       })
-      .then(async data => {
-        const userData = await forgeAPI.user.auth.getUserData.query()
-
-        setUserData(userData)
+      .then(data => {
         toast.success('Google Calendar, Gmail, and Drive are now linked.')
-        navigate(data.redirectPath || fallbackRedirect, { replace: true })
+        window.location.replace(data.redirectPath || fallbackRedirect)
       })
       .catch((error: unknown) => {
         const message =
@@ -56,9 +52,9 @@ function GoogleLinkCallbackPage() {
             : 'Failed to link Google services.'
 
         toast.error(message)
-        navigate(fallbackRedirect, { replace: true })
+        window.location.replace(fallbackRedirect)
       })
-  }, [auth, authLoading, navigate, searchParams, setUserData])
+  }, [auth, authLoading, searchParams])
 
   return <LoadingScreen message="Linking Google services..." />
 }
