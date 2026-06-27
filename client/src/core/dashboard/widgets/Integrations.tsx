@@ -85,6 +85,7 @@ function IntegrationsWidget({
     dimension.h >= 3
       ? googleConnection?.services ?? []
       : (googleConnection?.services ?? []).slice(0, 2)
+  const compactActions = dimension.w <= 2
 
   return (
     <Card gap="md" height="100%">
@@ -122,23 +123,28 @@ function IntegrationsWidget({
 
       <Flex
         align={{ base: 'stretch', sm: 'center' }}
-        direction={dimension.w <= 2 ? 'column' : 'row'}
-        gap="sm"
+        direction="row"
+        gap={compactActions ? 'xs' : 'sm'}
+        wrap="nowrap"
         style={{ marginTop: 'auto' }}
       >
         <Button
+          flex="1"
           icon="tabler:link"
           loading={linkLoading}
-          width={dimension.w <= 2 ? '100%' : undefined}
+          minWidth="0"
+          p={compactActions ? 'sm' : 'md'}
           onClick={startLinkFlow}
         >
           Link Google
         </Button>
         <Button
+          flex="1"
           icon="tabler:unlink"
           loading={unlinkLoading}
+          minWidth="0"
+          p={compactActions ? 'sm' : 'md'}
           variant="secondary"
-          width={dimension.w <= 2 ? '100%' : undefined}
           onClick={unlinkGoogleServices}
         >
           Unlink
